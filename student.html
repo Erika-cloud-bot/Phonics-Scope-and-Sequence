@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word Practice</title>
+<style>
+  /* Nothing loads from the internet — this has to run on a Chromebook offline. */
+  :root {
+    --ink:    #2b2724;
+    --soft:   #6f665f;
+    --page:   #fff8ec;
+    --card:   #ffffff;
+    --line:   #ecdfc9;
+    --blue:   #3b7ea1;
+    --green:  #3f8f5f;
+    --red:    #c4553d;
+    --yellow: #f0a92e;
+    --purple: #7b5ea7;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; min-height: 100vh;
+    font: 18px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--ink); background: var(--page);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .screen { width: 100%; max-width: 860px; padding: 20px 18px 60px; }
+  .hidden { display: none !important; }
+
+  h1 { font-size: 30px; margin: 8px 0 4px; }
+  .sub { color: var(--soft); margin: 0 0 24px; }
+
+  /* ---------- start screen ---------- */
+  .field-label {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--soft); margin: 22px 0 8px;
+  }
+  .weeks { display: flex; flex-wrap: wrap; gap: 7px; }
+  .wk {
+    min-width: 46px; height: 44px; padding: 0 10px;
+    border: 2px solid var(--line); background: var(--card);
+    border-radius: 11px; cursor: pointer; font: inherit; font-size: 16px;
+    font-variant-numeric: tabular-nums; color: var(--ink);
+  }
+  .wk:hover:not(:disabled) { border-color: var(--blue); }
+  .wk.on { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 700; }
+  .wk:disabled { opacity: .35; cursor: not-allowed; }
+
+  .acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: 14px; }
+  .act {
+    text-align: left; padding: 18px; border-radius: 16px; cursor: pointer;
+    border: 2px solid var(--line); background: var(--card); font: inherit; color: var(--ink);
+  }
+  .act:hover:not(:disabled) { border-color: var(--blue); transform: translateY(-2px); }
+  .act:disabled { opacity: .45; cursor: not-allowed; }
+  .act .emoji { font-size: 30px; display: block; margin-bottom: 6px; }
+  .act .name { font-weight: 700; font-size: 19px; display: block; }
+  .act .why  { color: var(--soft); font-size: 15px; }
+
+  /* ---------- activity ---------- */
+  .bar { display: flex; align-items: center; gap: 14px; margin-bottom: 26px; }
+  .dots { display: flex; gap: 6px; flex: 1; }
+  .dot { width: 100%; height: 8px; border-radius: 4px; background: var(--line); }
+  .dot.done { background: var(--green); }
+  .dot.miss { background: var(--red); }
+  .dot.now  { background: var(--blue); }
+  .quit { border: none; background: none; font: inherit; font-size: 15px; color: var(--soft); cursor: pointer; text-decoration: underline; }
+
+  .word-stage { text-align: center; padding: 30px 10px 24px; }
+  .the-word {
+    font-size: clamp(46px, 12vw, 86px); font-weight: 700;
+    letter-spacing: .01em; line-height: 1.15; margin: 0;
+  }
+  .the-word .hi { color: var(--blue); }
+  .the-word .gap {
+    display: inline-block; min-width: 1.4em;
+    border-bottom: 6px solid var(--yellow); color: transparent;
+  }
+  .say {
+    margin-top: 14px; border: 2px solid var(--line); background: var(--card);
+    border-radius: 50px; padding: 9px 20px; font: inherit; font-size: 16px; cursor: pointer;
+  }
+  .say:hover { border-color: var(--blue); }
+
+  .choices { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 8px; }
+  .choice {
+    min-width: 130px; padding: 20px 26px; font: inherit; font-size: 27px; font-weight: 700;
+    border: 3px solid var(--line); background: var(--card); border-radius: 16px;
+    cursor: pointer; color: var(--ink);
+  }
+  .choice:hover:not(:disabled) { border-color: var(--blue); }
+  .choice.right { background: var(--green); border-color: var(--green); color: #fff; }
+  .choice.wrong { background: var(--red);   border-color: var(--red);   color: #fff; }
+  .choice:disabled { cursor: default; }
+  .choice .small { display: block; font-size: 14px; font-weight: 400; opacity: .8; }
+
+  .feedback { text-align: center; font-size: 22px; font-weight: 700; min-height: 34px; margin-top: 20px; }
+  .feedback.good { color: var(--green); }
+  .feedback.bad  { color: var(--red); }
+
+  /* ---------- results ---------- */
+  .score { text-align: center; padding: 20px 0 8px; }
+  .score .big { font-size: 62px; font-weight: 700; line-height: 1; }
+  .stars { font-size: 40px; letter-spacing: 6px; margin: 12px 0; }
+  .tricky {
+    background: var(--card); border: 2px solid var(--line);
+    border-radius: 14px; padding: 16px 20px; margin-top: 20px;
+  }
+  .tricky h3 { margin: 0 0 8px; font-size: 17px; }
+  .tricky p  { margin: 0 0 10px; color: var(--soft); font-size: 15px; }
+  .tricky ul { margin: 0; padding-left: 20px; font-size: 19px; }
+  .again {
+    display: block; width: 100%; margin-top: 22px; padding: 16px;
+    font: inherit; font-size: 19px; font-weight: 700; cursor: pointer;
+    background: var(--blue); color: #fff; border: none; border-radius: 14px;
+  }
+  .again.ghost { background: var(--card); color: var(--ink); border: 2px solid var(--line); margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ============ START ============ -->
+<div class="screen" id="s-start">
+  <h1>Word Practice</h1>
+  <p class="sub">Pick a week, then pick something to practise.</p>
+
+  <div class="field-label">Week</div>
+  <div class="weeks" id="weeks"></div>
+
+  <div class="field-label">Practice</div>
+  <div class="acts" id="acts"></div>
+</div>
+
+<!-- ============ PLAY ============ -->
+<div class="screen hidden" id="s-play">
+  <div class="bar">
+    <div class="dots" id="dots"></div>
+    <button class="quit" id="quit">Stop</button>
+  </div>
+  <div id="stage"></div>
+  <div class="feedback" id="feedback"></div>
+</div>
+
+<!-- ============ DONE ============ -->
+<div class="screen hidden" id="s-done">
+  <div class="score">
+    <div class="big" id="scoreBig"></div>
+    <div class="stars" id="stars"></div>
+    <p class="sub" id="scoreMsg"></p>
+  </div>
+  <div id="trickyBox"></div>
+  <button class="again" id="again">Practise again</button>
+  <button class="again ghost" id="back">Pick something else</button>
+</div>
+
+<script src="data/sequence.js"></script>
+<script src="data/wordbank.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var ROUND = 10;   // questions per round
+
+  /* Some pattern keys aren't the letters themselves — map those to the
+     actual grapheme a child would see in the word. */
+  var GRAPHEME = {
+    "ow-long-o": "ow", "ow-loud": "ow",
+    "oo-long": "oo",   "oo-short": "oo",
+    "er-r": "er",      "er-agent": "er",
+    "soft-c": "c",     "soft-g": "g",
+    "consonant-le": "le"
+  };
+
+  /* Short column headings for sorting. Where two patterns share a spelling
+     (the two oo sounds, the two jobs of ow) the heading needs a key word to
+     tell them apart — which is how these get sorted on paper anyway. */
+  var SHORT = {
+    "oo-long": "oo — moon", "oo-short": "oo — book",
+    "ow-long-o": "ow — snow", "ow-loud": "ow — cow",
+    "soft-c": "soft c", "soft-g": "soft g",
+    "er-r": "er", "er-agent": "-er / -or", "consonant-le": "-le",
+    "plural-s": "-s", "plural-es": "-es", "plural-ies": "-ies",
+    "plural-irregular": "irregular", "open-syllable": "open",
+    "syllable-division": "split it", "short-vowels": "short vowel",
+    "homophones-1": "their / there", "homophones-2": "to / too / two",
+    "compound": "compound", "schwa": "schwa", "contractions": "contraction",
+    "etymology": "word origin", "irregular": "tricky"
+  };
+
+  /* Patterns with no single letter-chunk to blank out — these can't be
+     used for Missing Piece, though they're fine for reading and sorting. */
+  var NO_GRAPHEME = ["short-vowels", "open-syllable", "syllable-division",
+    "homophones-1", "homophones-2", "compound", "plural-s", "plural-es",
+    "plural-ies", "plural-irregular", "schwa", "contractions",
+    "etymology", "irregular"];
+
+  var state = { week: null, tier: "core", activity: null, queue: [], at: 0, right: 0, tricky: [] };
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function shuffled(list) {
+    var a = list.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function graphemeFor(key) {
+    if (NO_GRAPHEME.indexOf(key) !== -1) return null;
+    if (GRAPHEME[key]) return GRAPHEME[key];
+    return /^[a-z]+$/.test(key) ? key : null;
+  }
+
+  /* Heading for a sort column: the hand-written short form if there is one,
+     otherwise the letters themselves, otherwise fall back to the full label. */
+  function shortLabel(key) {
+    if (SHORT[key]) return SHORT[key];
+    var g = graphemeFor(key);
+    return g || (window.WORDBANK[key] || {}).label || key;
+  }
+
+  function weekByNum(n) {
+    return window.SEQUENCE.filter(function (w) { return w.week === n; })[0];
+  }
+
+  /* Every word in a week, tagged with the pattern it came from. */
+  function poolFor(week) {
+    var out = [];
+    week.patterns.concat(week.morphology).forEach(function (key) {
+      var entry = window.WORDBANK[key];
+      if (!entry) return;
+      ["easy", "core", "challenge"].forEach(function (tier) {
+        (entry[tier] || []).forEach(function (w) {
+          out.push({ word: w, key: key, label: entry.label, tier: tier });
+        });
+      });
+    });
+    return out;
+  }
+
+  /* Which activities this week can actually support. */
+  function available(week) {
+    var pool = poolFor(week);
+    var sortable = week.patterns.filter(function (k) {
+      return (window.WORDBANK[k] || {}).label;
+    });
+    var gapWords = pool.filter(function (it) {
+      var g = graphemeFor(it.key);
+      return g && it.word.toLowerCase().indexOf(g) !== -1;
+    });
+    return {
+      read: pool.length >= 4,
+      sort: sortable.length >= 2 && pool.length >= 6,
+      gap:  gapWords.length >= 4
+    };
+  }
+
+  // ---------- speech ----------
+  var canSpeak = "speechSynthesis" in window;
+  function say(word) {
+    if (!canSpeak) return;
+    try {
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(word);
+      u.lang = "en-CA";
+      u.rate = 0.85;
+      window.speechSynthesis.speak(u);
+    } catch (e) { /* no voice available — the button just does nothing */ }
+  }
+
+  function sayButton(word) {
+    if (!canSpeak) return "";
+    return '<button class="say" data-say="' + word + '">🔊 Hear it</button>';
+  }
+
+  // ---------- start screen ----------
+  function buildStart() {
+    var weeks = $("weeks");
+    weeks.innerHTML = "";
+    window.SEQUENCE.forEach(function (w) {
+      var b = document.createElement("button");
+      b.className = "wk" + (w.week === state.week ? " on" : "");
+      b.textContent = w.week;
+      b.title = w.focus;
+      if (!w.patterns.length && !w.morphology.length) b.disabled = true;
+      b.addEventListener("click", function () { state.week = w.week; buildStart(); });
+      weeks.appendChild(b);
+    });
+
+    var acts = $("acts");
+    acts.innerHTML = "";
+    if (state.week === null) {
+      acts.innerHTML = "<p class='sub'>Choose a week first.</p>";
+      return;
+    }
+    var week = weekByNum(state.week);
+    var can  = available(week);
+
+    [
+      { id: "read", emoji: "📖", name: "Read It",       why: "Read each word out loud.",        ok: can.read },
+      { id: "sort", emoji: "🗂️", name: "Sort It",       why: "Put each word in the right group.", ok: can.sort },
+      { id: "gap",  emoji: "🧩", name: "Missing Piece", why: "Choose the letters that fit.",     ok: can.gap  }
+    ].forEach(function (a) {
+      var b = document.createElement("button");
+      b.className = "act";
+      b.disabled = !a.ok;
+      b.innerHTML = "<span class='emoji'>" + a.emoji + "</span>" +
+                    "<span class='name'>" + a.name + "</span>" +
+                    "<span class='why'>" + (a.ok ? a.why : "Not available for this week.") + "</span>";
+      b.addEventListener("click", function () { start(a.id); });
+      acts.appendChild(b);
+    });
+  }
+
+  // ---------- rounds ----------
+  function start(activity) {
+    var week = weekByNum(state.week);
+    state.activity = activity;
+    state.at = 0; state.right = 0; state.tricky = [];
+
+    var pool = poolFor(week);
+
+    if (activity === "gap") {
+      pool = pool.filter(function (it) {
+        var g = graphemeFor(it.key);
+        return g && it.word.toLowerCase().indexOf(g) !== -1;
+      });
+    }
+    if (activity === "sort") {
+      var cols = week.patterns.filter(function (k) { return (window.WORDBANK[k] || {}).label; });
+      state.columns = cols;
+      pool = pool.filter(function (it) { return cols.indexOf(it.key) !== -1; });
+    }
+
+    state.queue = shuffled(pool).slice(0, ROUND);
+    show("s-play");
+    buildDots();
+    nextQuestion();
+  }
+
+  function buildDots() {
+    var d = $("dots");
+    d.innerHTML = "";
+    state.queue.forEach(function (_, i) {
+      var el = document.createElement("div");
+      el.className = "dot" + (i === 0 ? " now" : "");
+      d.appendChild(el);
+    });
+  }
+
+  function markDot(i, ok) {
+    var dots = $("dots").children;
+    if (dots[i]) dots[i].className = "dot " + (ok ? "done" : "miss");
+    if (dots[i + 1]) dots[i + 1].className = "dot now";
+  }
+
+  function nextQuestion() {
+    $("feedback").textContent = "";
+    $("feedback").className = "feedback";
+    if (state.at >= state.queue.length) return finish();
+
+    var item = state.queue[state.at];
+    if (state.activity === "read") return askRead(item);
+    if (state.activity === "sort") return askSort(item);
+    return askGap(item);
+  }
+
+  function advance(ok, item) {
+    if (ok) state.right++;
+    else if (item) state.tricky.push(item.word);
+    markDot(state.at, ok);
+    state.at++;
+    setTimeout(nextQuestion, ok ? 700 : 1300);
+  }
+
+  // --- Read It: child reads aloud and self-marks. No pretending we can hear them. ---
+  function askRead(item) {
+    $("stage").innerHTML =
+      "<div class='word-stage'>" +
+        "<p class='the-word'>" + item.word + "</p>" +
+        sayButton(item.word) +
+      "</div>" +
+      "<div class='choices'>" +
+        "<button class='choice' data-read='yes'>I read it<span class='small'>easy</span></button>" +
+        "<button class='choice' data-read='no'>Tricky<span class='small'>come back to it</span></button>" +
+      "</div>";
+    wire();
+    document.querySelectorAll("[data-read]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = b.getAttribute("data-read") === "yes";
+        b.className = "choice " + (ok ? "right" : "wrong");
+        $("feedback").textContent = ok ? "Nice reading!" : "That one goes on the list.";
+        $("feedback").className = "feedback " + (ok ? "good" : "bad");
+        advance(ok, item);
+      });
+    });
+  }
+
+  // --- Sort It: which pattern group does this word belong to? ---
+  function askSort(item) {
+    var cols = shuffled(state.columns);
+    $("stage").innerHTML =
+      "<div class='word-stage'>" +
+        "<p class='the-word'>" + item.word + "</p>" +
+        sayButton(item.word) +
+      "</div>" +
+      "<div class='choices'>" +
+        cols.map(function (k) {
+          return "<button class='choice' data-key='" + k + "'>" + shortLabel(k) +
+                 "<span class='small'>" + window.WORDBANK[k].label + "</span></button>";
+        }).join("") +
+      "</div>";
+    wire();
+    document.querySelectorAll("[data-key]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = b.getAttribute("data-key") === item.key;
+        document.querySelectorAll("[data-key]").forEach(function (x) { x.disabled = true; });
+        b.className = "choice " + (ok ? "right" : "wrong");
+        if (!ok) {
+          document.querySelectorAll("[data-key]").forEach(function (x) {
+            if (x.getAttribute("data-key") === item.key) x.className = "choice right";
+          });
+        }
+        $("feedback").textContent = ok ? "That's the one!" : "It goes with " + window.WORDBANK[item.key].label + ".";
+        $("feedback").className = "feedback " + (ok ? "good" : "bad");
+        advance(ok, item);
+      });
+    });
+  }
+
+  // --- Missing Piece: blank the pattern out, choose the letters back. ---
+  function askGap(item) {
+    var g    = graphemeFor(item.key);
+    var word = item.word;
+    var idx  = word.toLowerCase().indexOf(g);
+    var shown = word.slice(0, idx) +
+                "<span class='gap'>" + word.substr(idx, g.length) + "</span>" +
+                word.slice(idx + g.length);
+
+    /* Distractors: other graphemes the same length, so the choice is real. */
+    var pool = Object.keys(window.WORDBANK)
+      .map(graphemeFor)
+      .filter(function (x) { return x && x.length === g.length && x !== g; });
+    var opts = shuffled(pool.filter(function (v, i, a) { return a.indexOf(v) === i; })).slice(0, 2);
+    opts.push(g);
+    opts = shuffled(opts);
+
+    $("stage").innerHTML =
+      "<div class='word-stage'><p class='the-word'>" + shown + "</p>" + sayButton(word) + "</div>" +
+      "<div class='choices'>" +
+        opts.map(function (o) { return "<button class='choice' data-opt='" + o + "'>" + o + "</button>"; }).join("") +
+      "</div>";
+    wire();
+    document.querySelectorAll("[data-opt]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = b.getAttribute("data-opt") === g;
+        document.querySelectorAll("[data-opt]").forEach(function (x) { x.disabled = true; });
+        b.className = "choice " + (ok ? "right" : "wrong");
+        if (!ok) {
+          document.querySelectorAll("[data-opt]").forEach(function (x) {
+            if (x.getAttribute("data-opt") === g) x.className = "choice right";
+          });
+        }
+        var full = $("stage").querySelector(".gap");
+        if (full) { full.style.color = "inherit"; }
+        $("feedback").textContent = ok ? "Yes — " + word + "!" : "It's " + word + ".";
+        $("feedback").className = "feedback " + (ok ? "good" : "bad");
+        advance(ok, item);
+      });
+    });
+  }
+
+  function wire() {
+    document.querySelectorAll("[data-say]").forEach(function (b) {
+      b.addEventListener("click", function () { say(b.getAttribute("data-say")); });
+    });
+  }
+
+  // ---------- results ----------
+  function finish() {
+    var total = state.queue.length;
+    var pct   = total ? state.right / total : 0;
+    var stars = pct >= 0.9 ? 3 : pct >= 0.7 ? 2 : pct >= 0.4 ? 1 : 0;
+
+    $("scoreBig").textContent = state.right + " / " + total;
+    $("stars").textContent = "★★★".slice(0, stars) + "☆☆☆".slice(0, 3 - stars);
+    $("scoreMsg").textContent =
+      stars === 3 ? "Brilliant — you've got this pattern." :
+      stars === 2 ? "Good work. A few more to practise." :
+      stars === 1 ? "Getting there. Try the same week again." :
+                    "This one's tricky. Ask your teacher to practise it with you.";
+
+    var box = $("trickyBox");
+    if (state.tricky.length) {
+      box.innerHTML =
+        "<div class='tricky'><h3>Words to come back to</h3>" +
+        "<p>Show this list to your teacher.</p><ul>" +
+        state.tricky.map(function (w) { return "<li>" + w + "</li>"; }).join("") +
+        "</ul></div>";
+    } else {
+      box.innerHTML = "";
+    }
+    show("s-done");
+  }
+
+  // ---------- screens ----------
+  function show(id) {
+    ["s-start", "s-play", "s-done"].forEach(function (s) {
+      $(s).classList.toggle("hidden", s !== id);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  $("quit").addEventListener("click", function () { show("s-start"); });
+  $("again").addEventListener("click", function () { start(state.activity); });
+  $("back").addEventListener("click", function () { show("s-start"); buildStart(); });
+
+  buildStart();
+})();
+</script>
+</body>
+</html>

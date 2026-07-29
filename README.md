@@ -10,6 +10,7 @@ Each week pairs a phonics/word-study focus with a morphology focus and a grammar
 |---|---|
 | [`Grade3_Phonics_Grammar_Scope_and_Sequence.md`](Grade3_Phonics_Grammar_Scope_and_Sequence.md) | The full 36-week sequence, in three term tables |
 | [`index.html`](index.html) | Word list generator — pick a week, get practice words |
+| [`student.html`](student.html) | Student practice app — three activities per week |
 | [`data/sequence.js`](data/sequence.js) | The 36 weeks in a form the app can read |
 | [`data/wordbank.js`](data/wordbank.js) | The words, grouped by pattern and difficulty tier |
 
@@ -40,6 +41,28 @@ Review and assessment weeks have no new pattern, so they generate no words by de
 
 To add a word, type it inside the brackets in quotes, with a comma after the previous one. Save, then refresh the browser. Some patterns also have a `note:` line, which shows as a highlighted teaching caution above the words.
 
+## Student practice app
+
+Open `student.html` — or click **Student practice app** from the word list generator. Same deal: no install, no internet, no sign-in.
+
+A child picks a week, then one of three activities. The app only offers the ones that week's pattern can actually support, so nothing broken is ever presented:
+
+| Activity | What the child does | Available when |
+|---|---|---|
+| **Read It** | Word appears large; they read it aloud and mark it *read* or *tricky* | Any week with words |
+| **Sort It** | A word appears; they choose which pattern group it belongs to | The week has 2+ patterns |
+| **Missing Piece** | The pattern is blanked out (`rem__n`); they choose the letters | The pattern is a findable letter chunk |
+
+Ten questions a round, then a score out of ten with stars. **Any word marked tricky is listed on the results screen** — that list is the useful bit for you, and it's why Read It exists at all.
+
+There's a **Hear it** button on every word, using the voice built into the browser. It's ordinary text-to-speech, not a reading teacher — fine for checking a word, not a substitute for you saying it.
+
+### What it deliberately doesn't do
+
+- **No speech recognition.** It cannot hear a child read. Read It asks them to self-mark, which is honest about that limit rather than faking it.
+- **No names, no accounts, no saved data.** Nothing persists after the tab closes. That's why it needs no permission from anyone to use.
+- **No mascot or themed worlds.** Those are Lalilo's, and they're not ours to copy.
+
 ## How the year is structured
 
 | Term | Months | Weeks | Arc |
@@ -67,4 +90,4 @@ The sequence supports Ontario Language 2023 **Strand B: Foundations of Language*
 
 ## A note on materials
 
-This repository contains only the sequence document itself. Commercial and third-party resources used alongside it — Reading A-Z leveled readers, K5 Learning workbooks, Canadian Daily Phonics, the CORE Phonics Survey — are copyrighted and are **not** included here. The `.gitignore` excludes PDF, Word, and archive files so they aren't committed by accident.
+This repository contains only the sequence document and the tools built around it. Commercial and third-party resources used alongside it — Reading A-Z leveled readers, K5 Learning workbooks, Canadian Daily Phonics, the CORE Phonics Survey — are copyrighted and are **not** included here. The `.gitignore` excludes PDF, Word, and archive files so they aren't committed by accident.
