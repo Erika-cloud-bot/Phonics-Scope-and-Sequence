@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Progress — Grade 3 Phonics</title>
+<style>
+  :root { --ink:#23201d; --soft:#6b635c; --line:#e2dcd4; --page:#fbf9f6; --card:#fff; --accent:#b1543a; --good:#3f8f5f; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.55 "Segoe UI", system-ui, sans-serif; color:var(--ink); background:var(--page); }
+  .wrap { max-width:1000px; margin:0 auto; padding:24px 20px 80px; }
+  h1 { margin:0 0 4px; font-size:26px; }
+  .sub { color:var(--soft); margin:0 0 22px; font-size:15px; }
+  a.back { color:var(--accent); }
+
+  .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:14px 16px;
+             background:var(--card); border:1px solid var(--line); border-radius:10px; margin-bottom:22px; }
+  .toolbar .spacer { flex:1; }
+  button.action { font:inherit; font-size:14px; padding:8px 14px; cursor:pointer;
+                  background:var(--card); border:1px solid var(--line); border-radius:7px; color:var(--ink); }
+  button.action:hover { border-color:var(--accent); color:var(--accent); }
+  button.action.danger:hover { border-color:#c4553d; color:#c4553d; }
+
+  .student { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 22px; margin-bottom:16px; }
+  .student h2 { margin:0 0 2px; font-size:20px; display:flex; align-items:center; gap:10px; }
+  .stars { color:#f0a92e; font-size:16px; }
+  .meta { color:var(--soft); font-size:14px; margin:0 0 14px; }
+
+  .watch { background:#fdf6f3; border-left:3px solid var(--accent); padding:10px 14px; border-radius:0 6px 6px 0; margin-bottom:14px; }
+  .watch h3 { margin:0 0 6px; font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--soft); }
+  .watch .words { font-size:17px; }
+  .watch .n { color:var(--soft); font-size:14px; }
+
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+       color:var(--soft); border-bottom:1px solid var(--line); padding:6px 8px; }
+  td { padding:6px 8px; border-bottom:1px solid #f2eee8; }
+  td.score { font-variant-numeric:tabular-nums; }
+  .empty { color:var(--soft); font-style:italic; }
+  textarea { width:100%; min-height:120px; font:13px/1.4 Consolas, monospace;
+             border:1px solid var(--line); border-radius:8px; padding:10px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 22px; margin-bottom:20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Progress</h1>
+  <p class="sub">What students did in the practice app on <strong>this device</strong>.
+     <a class="back" href="index.html">← Word list generator</a></p>
+
+  <div class="toolbar">
+    <button class="action" id="refresh">Refresh</button>
+    <button class="action" id="export">Download backup</button>
+    <button class="action" id="showImport">Restore from backup</button>
+    <span class="spacer"></span>
+    <button class="action danger" id="clearAll">Clear this device</button>
+  </div>
+
+  <div class="panel hidden" id="importPanel" style="display:none">
+    <p class="sub">Paste the contents of a backup file, then press Merge. Existing students are kept — rounds are added, not replaced.</p>
+    <textarea id="importText" placeholder='{"students":{ ... }}'></textarea>
+    <p><button class="action" id="doImport">Merge</button> <span id="importMsg" class="sub"></span></p>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var STORE = "phonics.progress.v1";
+  var ACT = { read:"Read It", picture:"Picture Match", sort:"Sort It", gap:"Missing Piece" };
+  var $ = function (id) { return document.getElementById(id); };
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORE)) || { students:{} }; }
+    catch (e) { return { students:{} }; }
+  }
+  function save(d) { localStorage.setItem(STORE, JSON.stringify(d)); }
+
+  /* Words a student marked tricky or got wrong, counted. This is the part
+     worth reading — it's the small-group list, generated while you were busy. */
+  function watchList(rounds) {
+    var count = {};
+    rounds.forEach(function (r) {
+      (r.tricky || []).forEach(function (w) { count[w] = (count[w] || 0) + 1; });
+    });
+    return Object.keys(count)
+      .map(function (w) { return { w:w, n:count[w] }; })
+      .sort(function (a,b) { return b.n - a.n || a.w.localeCompare(b.w); });
+  }
+
+  function render() {
+    var data = load(), names = Object.keys(data.students).sort(), out = $("out");
+    out.innerHTML = "";
+
+    if (!names.length) {
+      out.innerHTML = "<p class='empty'>Nothing recorded on this device yet. " +
+        "Progress appears here once a student finishes a round in the practice app.</p>";
+      return;
+    }
+
+    names.forEach(function (name) {
+      var s = data.students[name], rounds = (s.rounds || []).slice().reverse();
+      var watch = watchList(s.rounds || []);
+      var totalQ = (s.rounds||[]).reduce(function (a,r) { return a + r.t; }, 0);
+      var totalR = (s.rounds||[]).reduce(function (a,r) { return a + r.r; }, 0);
+      var pct = totalQ ? Math.round(totalR / totalQ * 100) : 0;
+
+      var el = document.createElement("div");
+      el.className = "student";
+
+      var head = "<h2>" + name + " <span class='stars'>★ " + (s.stars||0) + "</span></h2>" +
+        "<p class='meta'>" + rounds.length + " round" + (rounds.length===1?"":"s") +
+        " · " + totalR + " of " + totalQ + " correct (" + pct + "%)</p>";
+
+      var watchHtml = watch.length
+        ? "<div class='watch'><h3>Words to work on</h3><div class='words'>" +
+          watch.slice(0,14).map(function (x) {
+            return x.w + (x.n > 1 ? " <span class='n'>×"+x.n+"</span>" : "");
+          }).join(" &nbsp;·&nbsp; ") + "</div></div>"
+        : "";
+
+      var rows = rounds.slice(0,25).map(function (r) {
+        return "<tr><td>"+r.d+"</td><td>Week "+r.w+"</td><td>"+(ACT[r.a]||r.a)+"</td>" +
+               "<td class='score'>"+r.r+"/"+r.t+"</td><td>"+"★".repeat(r.s||0)+"</td></tr>";
+      }).join("");
+
+      el.innerHTML = head + watchHtml +
+        "<table><thead><tr><th>Date</th><th>Week</th><th>Activity</th><th>Score</th><th></th></tr></thead>" +
+        "<tbody>" + rows + "</tbody></table>" +
+        (rounds.length > 25 ? "<p class='sub'>Showing the 25 most recent.</p>" : "") +
+        "<p><button class='action danger' data-del='"+name+"'>Remove "+name+"</button></p>";
+
+      out.appendChild(el);
+    });
+
+    document.querySelectorAll("[data-del]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var n = b.getAttribute("data-del");
+        if (!confirm("Remove " + n + " and all their rounds from this device?\n\nThis cannot be undone.")) return;
+        var d = load(); delete d.students[n]; save(d); render();
+      });
+    });
+  }
+
+  $("refresh").addEventListener("click", render);
+
+  $("export").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(load(), null, 2)], { type:"application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "phonics-progress-" + new Date().toISOString().slice(0,10) + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  });
+
+  $("showImport").addEventListener("click", function () {
+    var p = $("importPanel");
+    p.style.display = p.style.display === "none" ? "block" : "none";
+  });
+
+  $("doImport").addEventListener("click", function () {
+    var msg = $("importMsg");
+    var incoming;
+    try { incoming = JSON.parse($("importText").value); }
+    catch (e) { msg.textContent = "That isn't valid backup text."; return; }
+    if (!incoming || !incoming.students) { msg.textContent = "No students found in that backup."; return; }
+
+    var data = load(), added = 0;
+    Object.keys(incoming.students).forEach(function (n) {
+      var inc = incoming.students[n];
+      if (!data.students[n]) { data.students[n] = { stars:0, rounds:[] }; }
+      var mine = data.students[n];
+      var seen = {};
+      mine.rounds.forEach(function (r) { seen[r.d+"|"+r.w+"|"+r.a+"|"+r.r+"|"+r.t] = true; });
+      (inc.rounds||[]).forEach(function (r) {
+        var k = r.d+"|"+r.w+"|"+r.a+"|"+r.r+"|"+r.t;
+        if (!seen[k]) { mine.rounds.push(r); mine.stars += (r.s||0); seen[k] = true; added++; }
+      });
+      mine.rounds.sort(function (a,b) { return a.d < b.d ? -1 : 1; });
+    });
+    save(data);
+    msg.textContent = added + " new round" + (added===1?"":"s") + " merged.";
+    render();
+  });
+
+  $("clearAll").addEventListener("click", function () {
+    if (!confirm("Clear all progress on this device?\n\nDownload a backup first if you want to keep it.\nThis cannot be undone.")) return;
+    localStorage.removeItem(STORE); render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
