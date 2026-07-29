@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word Practice</title>
+<style>
+  /* Nothing loads from the internet. Everything here runs on a Chromebook
+     with the wifi off, opened straight from the file. */
+  :root {
+    --ink: #2b2724; --soft: #6f665f; --card: #fff; --line: #e7ddd0;
+    --good: #3f8f5f; --bad: #c4553d; --gold: #f0a92e;
+    --page: #fff8ec; --deep: #3b7ea1; --glow: #eaf4f8;
+  }
+  body.w-forest { --page:#f2f8ee; --deep:#3f7d4e; --glow:#e4f0dd; }
+  body.w-ocean  { --page:#eef6fa; --deep:#2f6f92; --glow:#dceaf2; }
+  body.w-space  { --page:#f4f0fa; --deep:#6a4f96; --glow:#e8e0f4; }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; min-height: 100vh; font: 18px/1.5 "Segoe UI", system-ui, sans-serif;
+    color: var(--ink); background: var(--page);
+    display: flex; flex-direction: column; align-items: center;
+    transition: background .4s;
+  }
+  .screen { width: 100%; max-width: 820px; padding: 18px 16px 60px; }
+  .hidden { display: none !important; }
+  h1 { font-size: 28px; margin: 6px 0; }
+  .sub { color: var(--soft); margin: 0 0 20px; }
+
+  /* ---- mascot ---- */
+  .pip { width: 92px; height: 92px; flex: none; }
+  .pip .body  { fill: var(--deep); }
+  .pip .belly { fill: var(--glow); }
+  .pip .beak  { fill: var(--gold); }
+  .greet { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .bubble {
+    background: var(--card); border: 2px solid var(--line); border-radius: 16px;
+    padding: 10px 16px; font-size: 18px; position: relative;
+  }
+  .bubble::before {
+    content: ""; position: absolute; left: -9px; top: 20px;
+    border: 8px solid transparent; border-right-color: var(--line);
+  }
+
+  /* ---- buttons ---- */
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .btn {
+    font: inherit; cursor: pointer; border-radius: 12px; padding: 12px 18px;
+    border: 2px solid var(--line); background: var(--card); color: var(--ink);
+  }
+  .btn:hover:not(:disabled) { border-color: var(--deep); }
+  .btn.primary { background: var(--deep); border-color: var(--deep); color: #fff; font-weight: 700; }
+  .btn.block { display: block; width: 100%; margin-top: 10px; font-size: 19px; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .wk { min-width: 48px; height: 46px; font-variant-numeric: tabular-nums; padding: 0 10px; }
+  .wk.on { background: var(--deep); border-color: var(--deep); color: #fff; font-weight: 700; }
+
+  .world-tab { font-weight: 600; }
+  .world-tab.on { background: var(--deep); border-color: var(--deep); color: #fff; }
+
+  .acts { display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 12px; margin-top: 6px; }
+  .act { text-align: left; padding: 16px; border-radius: 15px; }
+  .act .emoji { font-size: 28px; display: block; }
+  .act .name  { font-weight: 700; font-size: 18px; display: block; }
+  .act .why   { color: var(--soft); font-size: 14px; }
+
+  .stars-line { font-size: 20px; color: var(--gold); letter-spacing: 2px; }
+
+  /* ---- play ---- */
+  .bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .dots { display: flex; gap: 5px; flex: 1; }
+  .dot { width: 100%; height: 8px; border-radius: 4px; background: var(--line); }
+  .dot.done { background: var(--good); } .dot.miss { background: var(--bad); } .dot.now { background: var(--deep); }
+  .quit { border: none; background: none; font: inherit; font-size: 15px; color: var(--soft); cursor: pointer; text-decoration: underline; }
+
+  .stage { text-align: center; padding: 18px 6px 14px; }
+  .pic { font-size: 76px; line-height: 1; margin-bottom: 6px; }
+  .the-word { font-size: clamp(42px,11vw,76px); font-weight: 700; margin: 0; }
+  .the-word .gap { display: inline-block; min-width: 1.3em; border-bottom: 6px solid var(--gold); color: transparent; }
+  .say { margin-top: 12px; border-radius: 40px; padding: 8px 18px; font-size: 16px; }
+
+  .choices { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .choice {
+    min-width: 130px; padding: 18px 22px; font-size: 25px; font-weight: 700;
+    border-width: 3px; border-radius: 15px;
+  }
+  .choice.right { background: var(--good); border-color: var(--good); color: #fff; }
+  .choice.wrong { background: var(--bad);  border-color: var(--bad);  color: #fff; }
+  .choice .small { display: block; font-size: 13px; font-weight: 400; opacity: .85; }
+  .feedback { text-align: center; font-size: 21px; font-weight: 700; min-height: 32px; margin-top: 16px; }
+  .feedback.good { color: var(--good); } .feedback.bad { color: var(--bad); }
+
+  /* ---- done ---- */
+  .score { text-align: center; }
+  .score .big { font-size: 56px; font-weight: 700; line-height: 1.1; }
+  .got-stars { font-size: 38px; letter-spacing: 6px; color: var(--gold); }
+  .tricky { background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 14px 18px; margin-top: 18px; }
+  .tricky h3 { margin: 0 0 6px; font-size: 16px; }
+  .tricky ul { margin: 0; padding-left: 20px; font-size: 19px; }
+  .name-input { font: inherit; font-size: 19px; padding: 12px; border: 2px solid var(--line); border-radius: 12px; width: 100%; max-width: 320px; }
+</style>
+</head>
+<body>
+
+<!-- ===== WHO ===== -->
+<div class="screen" id="s-who">
+  <div class="greet">
+    <div id="pipWho"></div>
+    <div class="bubble">Hi! Who's practising today?</div>
+  </div>
+  <div class="row" id="whoList" style="margin:18px 0"></div>
+  <div id="whoNew"></div>
+</div>
+
+<!-- ===== HOME ===== -->
+<div class="screen hidden" id="s-home">
+  <div class="greet">
+    <div id="pipHome"></div>
+    <div class="bubble" id="homeMsg"></div>
+  </div>
+  <p class="stars-line" id="homeStars"></p>
+
+  <p class="sub" style="margin:18px 0 6px"><strong id="worldName"></strong></p>
+  <div class="row" id="worldTabs" style="margin-bottom:14px"></div>
+  <div class="row" id="weekList"></div>
+
+  <div id="actWrap" class="hidden">
+    <p class="sub" style="margin:22px 0 4px"><strong id="weekFocus"></strong></p>
+    <div class="acts" id="acts"></div>
+  </div>
+
+  <button class="btn block" id="switchUser" style="margin-top:26px">Not you? Switch reader</button>
+</div>
+
+<!-- ===== PLAY ===== -->
+<div class="screen hidden" id="s-play">
+  <div class="bar">
+    <div class="dots" id="dots"></div>
+    <button class="quit" id="quit">Stop</button>
+  </div>
+  <div id="stage"></div>
+  <div class="feedback" id="feedback"></div>
+</div>
+
+<!-- ===== DONE ===== -->
+<div class="screen hidden" id="s-done">
+  <div class="greet">
+    <div id="pipDone"></div>
+    <div class="bubble" id="doneMsg"></div>
+  </div>
+  <div class="score">
+    <div class="big" id="scoreBig"></div>
+    <div class="got-stars" id="gotStars"></div>
+  </div>
+  <div id="trickyBox"></div>
+  <button class="btn primary block" id="keepGoing">Keep going →</button>
+  <button class="btn block" id="pickOther">Choose something else</button>
+</div>
+
+<script src="data/sequence.js"></script>
+<script src="data/wordbank.js"></script>
+<script src="data/meanings.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var ROUND = 10;
+  var STORE = "phonics.progress.v1";
+
+  var GRAPHEME = { "ow-long-o":"ow","ow-loud":"ow","oo-long":"oo","oo-short":"oo",
+    "er-r":"er","er-agent":"er","soft-c":"c","soft-g":"g","consonant-le":"le" };
+
+  var SHORT = { "oo-long":"oo — moon","oo-short":"oo — book","ow-long-o":"ow — snow",
+    "ow-loud":"ow — cow","soft-c":"soft c","soft-g":"soft g","er-r":"er",
+    "er-agent":"-er / -or","consonant-le":"-le","plural-s":"-s","plural-es":"-es",
+    "plural-ies":"-ies","plural-irregular":"irregular","open-syllable":"open",
+    "syllable-division":"split it","short-vowels":"short vowel",
+    "homophones-1":"their / there","homophones-2":"to / too / two","compound":"compound",
+    "schwa":"schwa","contractions":"contraction","etymology":"word origin","irregular":"tricky" };
+
+  var NO_GRAPHEME = ["short-vowels","open-syllable","syllable-division","homophones-1",
+    "homophones-2","compound","plural-s","plural-es","plural-ies","plural-irregular",
+    "schwa","contractions","etymology","irregular"];
+
+  var WORLDS = {
+    1: { css:"w-forest", name:"The Forest 🌲", term:1 },
+    2: { css:"w-ocean",  name:"The Ocean 🌊",  term:2 },
+    3: { css:"w-space",  name:"Deep Space 🚀", term:3 }
+  };
+
+  var state = { who:null, world:1, week:null, activity:null,
+                queue:[], at:0, right:0, tricky:[], rotate:0 };
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------- mascot ----------
+  /* Pip — drawn here in shapes, so there's no image file and nothing to load.
+     mood: "hi" | "cheer" | "think" */
+  function pip(mood) {
+    var eyes = mood === "cheer"
+      ? '<path d="M32 40 q6 -7 12 0" stroke="#2b2724" stroke-width="3.5" fill="none" stroke-linecap="round"/>' +
+        '<path d="M56 40 q6 -7 12 0" stroke="#2b2724" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
+      : '<circle cx="38" cy="42" r="7" fill="#fff"/><circle cx="62" cy="42" r="7" fill="#fff"/>' +
+        '<circle cx="' + (mood === "think" ? 40 : 38) + '" cy="43" r="3.4" fill="#2b2724"/>' +
+        '<circle cx="' + (mood === "think" ? 64 : 62) + '" cy="43" r="3.4" fill="#2b2724"/>';
+    var mouth = mood === "think"
+      ? '<path d="M44 66 q6 4 12 0" stroke="#2b2724" stroke-width="3" fill="none" stroke-linecap="round"/>'
+      : '';
+    return '<svg class="pip" viewBox="0 0 100 100" aria-hidden="true">' +
+      '<ellipse class="body" cx="50" cy="52" rx="34" ry="36"/>' +
+      '<ellipse class="belly" cx="50" cy="62" rx="21" ry="22"/>' +
+      '<ellipse class="body" cx="17" cy="54" rx="8" ry="14"/>' +
+      '<ellipse class="body" cx="83" cy="54" rx="8" ry="14"/>' +
+      eyes +
+      '<polygon class="beak" points="50,50 44,57 56,57"/>' + mouth +
+      '<ellipse class="beak" cx="40" cy="90" rx="7" ry="4"/>' +
+      '<ellipse class="beak" cx="60" cy="90" rx="7" ry="4"/>' +
+      '<path d="M50 16 l4 -9 l4 9" fill="none" stroke="currentColor" stroke-width="0"/>' +
+      '</svg>';
+  }
+
+  // ---------- storage ----------
+  function loadAll() {
+    try { return JSON.parse(localStorage.getItem(STORE)) || { students: {} }; }
+    catch (e) { return { students: {} }; }
+  }
+  function saveAll(d) {
+    try { localStorage.setItem(STORE, JSON.stringify(d)); return true; }
+    catch (e) { return false; }
+  }
+  function record(round) {
+    var all = loadAll();
+    var s = all.students[state.who] || { stars: 0, rounds: [] };
+    s.rounds.push(round);
+    s.stars += round.s;
+    if (s.rounds.length > 300) s.rounds = s.rounds.slice(-300);
+    all.students[state.who] = s;
+    saveAll(all);
+  }
+  function myStars() {
+    var s = loadAll().students[state.who];
+    return s ? s.stars : 0;
+  }
+
+  // ---------- helpers ----------
+  function shuffled(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function graphemeFor(k) {
+    if (NO_GRAPHEME.indexOf(k) !== -1) return null;
+    if (GRAPHEME[k]) return GRAPHEME[k];
+    return /^[a-z]+$/.test(k) ? k : null;
+  }
+  function shortLabel(k) { return SHORT[k] || graphemeFor(k) || (window.WORDBANK[k]||{}).label || k; }
+  function weekByNum(n) { return window.SEQUENCE.filter(function (w) { return w.week === n; })[0]; }
+  function picOf(w) { return window.MEANINGS[w.toLowerCase()] || null; }
+
+  function poolFor(week) {
+    var out = [];
+    week.patterns.concat(week.morphology).forEach(function (key) {
+      var e = window.WORDBANK[key];
+      if (!e) return;
+      ["easy","core","challenge"].forEach(function (t) {
+        (e[t]||[]).forEach(function (w) { out.push({ word:w, key:key, tier:t }); });
+      });
+    });
+    return out;
+  }
+  function available(week) {
+    var pool = poolFor(week);
+    var cols = week.patterns.filter(function (k) { return (window.WORDBANK[k]||{}).label; });
+    var gap  = pool.filter(function (i) { var g = graphemeFor(i.key); return g && i.word.toLowerCase().indexOf(g) !== -1; });
+    var pics = pool.filter(function (i) { return picOf(i.word); });
+    return { read: pool.length >= 4, sort: cols.length >= 2 && pool.length >= 6,
+             gap: gap.length >= 4, picture: pics.length >= 4 };
+  }
+
+  var canSpeak = "speechSynthesis" in window;
+  function say(w) {
+    if (!canSpeak) return;
+    try { speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(w); u.lang = "en-CA"; u.rate = .85; speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  function sayBtn(w) { return canSpeak ? '<button class="btn say" data-say="'+w+'">🔊 Hear it</button>' : ""; }
+
+  // ---------- who ----------
+  function buildWho() {
+    $("pipWho").innerHTML = pip("hi");
+    var all = loadAll(), names = Object.keys(all.students).sort();
+    var list = $("whoList"); list.innerHTML = "";
+    names.forEach(function (n) {
+      var b = document.createElement("button");
+      b.className = "btn"; b.textContent = n + "  ★" + all.students[n].stars;
+      b.addEventListener("click", function () { state.who = n; goHome(); });
+      list.appendChild(b);
+    });
+    if (!names.length) list.innerHTML = "<p class='sub'>No readers yet — type a name below.</p>";
+
+    $("whoNew").innerHTML =
+      '<input class="name-input" id="newName" placeholder="Type your name" maxlength="24">' +
+      '<button class="btn primary block" id="addName" style="max-width:320px">Start</button>';
+    $("addName").addEventListener("click", function () {
+      var n = $("newName").value.trim();
+      if (!n) return;
+      var d = loadAll();
+      if (!d.students[n]) { d.students[n] = { stars:0, rounds:[] }; saveAll(d); }
+      state.who = n; goHome();
+    });
+    $("newName").addEventListener("keydown", function (e) { if (e.key === "Enter") $("addName").click(); });
+  }
+
+  // ---------- home ----------
+  function goHome() { state.week = null; show("s-home"); buildHome(); }
+
+  function buildHome() {
+    document.body.className = WORLDS[state.world].css;
+    $("pipHome").innerHTML = pip("hi");
+    $("homeMsg").textContent = "Hello " + state.who + "! Pick a week to practise.";
+    var st = myStars();
+    $("homeStars").textContent = st ? "★ " + st + " star" + (st === 1 ? "" : "s") + " so far" : "";
+    $("worldName").textContent = WORLDS[state.world].name;
+
+    var tabs = $("worldTabs"); tabs.innerHTML = "";
+    [1,2,3].forEach(function (i) {
+      var b = document.createElement("button");
+      b.className = "btn world-tab" + (i === state.world ? " on" : "");
+      b.textContent = WORLDS[i].name;
+      b.addEventListener("click", function () { state.world = i; state.week = null; buildHome(); });
+      tabs.appendChild(b);
+    });
+
+    var list = $("weekList"); list.innerHTML = "";
+    window.SEQUENCE.filter(function (w) { return w.term === WORLDS[state.world].term; })
+      .forEach(function (w) {
+        var has = w.patterns.length || w.morphology.length;
+        var b = document.createElement("button");
+        b.className = "btn wk" + (w.week === state.week ? " on" : "");
+        b.textContent = w.week;
+        b.title = w.focus;
+        b.disabled = !has;
+        b.addEventListener("click", function () { state.week = w.week; buildHome(); });
+        list.appendChild(b);
+      });
+
+    if (state.week === null) { $("actWrap").classList.add("hidden"); return; }
+    $("actWrap").classList.remove("hidden");
+    var week = weekByNum(state.week), can = available(week);
+    $("weekFocus").textContent = "Week " + week.week + " — " + week.focus;
+
+    var acts = $("acts"); acts.innerHTML = "";
+    [ { id:"read",    emoji:"📖", name:"Read It",       why:"Read each word out loud.",      ok:can.read },
+      { id:"picture", emoji:"🖼️", name:"Picture Match", why:"Match the picture to the word.", ok:can.picture },
+      { id:"sort",    emoji:"🗂️", name:"Sort It",       why:"Put the word in the right group.", ok:can.sort },
+      { id:"gap",     emoji:"🧩", name:"Missing Piece", why:"Choose the letters that fit.",  ok:can.gap }
+    ].forEach(function (a) {
+      var b = document.createElement("button");
+      b.className = "btn act"; b.disabled = !a.ok;
+      b.innerHTML = "<span class='emoji'>"+a.emoji+"</span><span class='name'>"+a.name+"</span>" +
+                    "<span class='why'>"+(a.ok ? a.why : "Not for this week.")+"</span>";
+      b.addEventListener("click", function () { start(a.id); });
+      acts.appendChild(b);
+    });
+  }
+
+  // ---------- rounds ----------
+  function start(activity) {
+    var week = weekByNum(state.week);
+    state.activity = activity; state.at = 0; state.right = 0; state.tricky = [];
+    var pool = poolFor(week);
+
+    if (activity === "gap")     pool = pool.filter(function (i) { var g = graphemeFor(i.key); return g && i.word.toLowerCase().indexOf(g) !== -1; });
+    if (activity === "picture") pool = pool.filter(function (i) { return picOf(i.word); });
+    if (activity === "sort") {
+      state.columns = week.patterns.filter(function (k) { return (window.WORDBANK[k]||{}).label; });
+      pool = pool.filter(function (i) { return state.columns.indexOf(i.key) !== -1; });
+    }
+    state.queue = shuffled(pool).slice(0, ROUND);
+    show("s-play"); buildDots(); nextQ();
+  }
+
+  function buildDots() {
+    var d = $("dots"); d.innerHTML = "";
+    state.queue.forEach(function (_, i) {
+      var e = document.createElement("div"); e.className = "dot" + (i === 0 ? " now" : ""); d.appendChild(e);
+    });
+  }
+  function markDot(i, ok) {
+    var d = $("dots").children;
+    if (d[i]) d[i].className = "dot " + (ok ? "done" : "miss");
+    if (d[i+1]) d[i+1].className = "dot now";
+  }
+  function nextQ() {
+    $("feedback").textContent = ""; $("feedback").className = "feedback";
+    if (state.at >= state.queue.length) return finish();
+    var it = state.queue[state.at];
+    if (state.activity === "read")    return askRead(it);
+    if (state.activity === "picture") return askPicture(it);
+    if (state.activity === "sort")    return askSort(it);
+    return askGap(it);
+  }
+  function advance(ok, item) {
+    if (ok) state.right++; else if (item) state.tricky.push(item.word);
+    markDot(state.at, ok); state.at++;
+    setTimeout(nextQ, ok ? 700 : 1250);
+  }
+  function wire() {
+    document.querySelectorAll("[data-say]").forEach(function (b) {
+      b.addEventListener("click", function () { say(b.getAttribute("data-say")); });
+    });
+  }
+  function lockAndMark(sel, isRight, correctAttrVal, attr) {
+    document.querySelectorAll(sel).forEach(function (x) {
+      x.disabled = true;
+      if (!isRight && x.getAttribute(attr) === correctAttrVal) x.className = "btn choice right";
+    });
+  }
+
+  // Read It — the child reads aloud and marks themselves. The app can't hear them.
+  function askRead(it) {
+    var p = picOf(it.word);
+    $("stage").innerHTML = "<div class='stage'>" + (p ? "<div class='pic'>"+p+"</div>" : "") +
+      "<p class='the-word'>"+it.word+"</p>" + sayBtn(it.word) + "</div>" +
+      "<div class='choices'><button class='btn choice' data-read='yes'>I read it<span class='small'>easy</span></button>" +
+      "<button class='btn choice' data-read='no'>Tricky<span class='small'>come back to it</span></button></div>";
+    wire();
+    document.querySelectorAll("[data-read]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = b.getAttribute("data-read") === "yes";
+        b.className = "btn choice " + (ok ? "right" : "wrong");
+        $("feedback").textContent = ok ? "Nice reading!" : "That one goes on your list.";
+        $("feedback").className = "feedback " + (ok ? "good" : "bad");
+        advance(ok, it);
+      });
+    });
+  }
+
+  // Picture Match — meaning, not just decoding. The point of this one for ESL.
+  function askPicture(it) {
+    var others = shuffled(state.queue.filter(function (x) { return x.word !== it.word; }))
+                   .slice(0, 2).map(function (x) { return x.word; });
+    var opts = shuffled(others.concat([it.word]));
+    $("stage").innerHTML = "<div class='stage'><div class='pic'>"+picOf(it.word)+"</div>" +
+      "<p class='sub'>Which word is this?</p></div>" +
+      "<div class='choices'>" + opts.map(function (o) {
+        return "<button class='btn choice' data-word='"+o+"'>"+o+"</button>"; }).join("") + "</div>";
+    document.querySelectorAll("[data-word]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = b.getAttribute("data-word") === it.word;
+        b.className = "btn choice " + (ok ? "right" : "wrong");
+        lockAndMark("[data-word]", ok, it.word, "data-word");
+        $("feedback").textContent = ok ? "Yes — " + it.word + "!" : "This one is " + it.word + ".";
+        $("feedback").className = "feedback " + (ok ? "good" : "bad");
+        say(it.word);
+        advance(ok, it);
+      });
+    });
+  }
+
+  function askSort(it) {
+    var p = picOf(it.word), cols = shuffled(state.columns);
+    $("stage").innerHTML = "<div class='stage'>" + (p ? "<div class='pic'>"+p+"</div>" : "") +
+      "<p class='the-word'>"+it.word+"</p>" + sayBtn(it.word) + "</div>" +
+      "<div class='choices'>" + cols.map(function (k) {
+        return "<button class='btn choice' data-key='"+k+"'>"+shortLabel(k) +
+               "<span class='small'>"+window.WORDBANK[k].label+"</span></button>"; }).join("") + "</div>";
+    wire();
+    document.querySelectorAll("[data-key]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = b.getAttribute("data-key") === it.key;
+        b.className = "btn choice " + (ok ? "right" : "wrong");
+        lockAndMark("[data-key]", ok, it.key, "data-key");
+        $("feedback").textContent = ok ? "That's the one!" : "It goes with " + shortLabel(it.key) + ".";
+        $("feedback").className = "feedback " + (ok ? "good" : "bad");
+        advance(ok, it);
+      });
+    });
+  }
+
+  function askGap(it) {
+    var g = graphemeFor(it.key), w = it.word, i = w.toLowerCase().indexOf(g), p = picOf(w);
+    var shown = w.slice(0,i) + "<span class='gap'>" + w.substr(i,g.length) + "</span>" + w.slice(i+g.length);
+    var pool = Object.keys(window.WORDBANK).map(graphemeFor)
+      .filter(function (x) { return x && x.length === g.length && x !== g; });
+    var opts = shuffled(pool.filter(function (v,ix,a) { return a.indexOf(v) === ix; })).slice(0,2);
+    opts = shuffled(opts.concat([g]));
+
+    $("stage").innerHTML = "<div class='stage'>" + (p ? "<div class='pic'>"+p+"</div>" : "") +
+      "<p class='the-word'>"+shown+"</p>" + sayBtn(w) + "</div>" +
+      "<div class='choices'>" + opts.map(function (o) {
+        return "<button class='btn choice' data-opt='"+o+"'>"+o+"</button>"; }).join("") + "</div>";
+    wire();
+    document.querySelectorAll("[data-opt]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = b.getAttribute("data-opt") === g;
+        b.className = "btn choice " + (ok ? "right" : "wrong");
+        lockAndMark("[data-opt]", ok, g, "data-opt");
+        var el = $("stage").querySelector(".gap"); if (el) el.style.color = "inherit";
+        $("feedback").textContent = ok ? "Yes — " + w + "!" : "It's " + w + ".";
+        $("feedback").className = "feedback " + (ok ? "good" : "bad");
+        say(w);
+        advance(ok, it);
+      });
+    });
+  }
+
+  // ---------- done ----------
+  function finish() {
+    var total = state.queue.length, pct = total ? state.right/total : 0;
+    var stars = pct >= .9 ? 3 : pct >= .7 ? 2 : pct >= .4 ? 1 : 0;
+
+    record({ d: new Date().toISOString().slice(0,10), w: state.week,
+             a: state.activity, r: state.right, t: total, s: stars,
+             tricky: state.tricky.slice(0,20) });
+
+    $("pipDone").innerHTML = pip(stars >= 2 ? "cheer" : "think");
+    $("doneMsg").textContent =
+      stars === 3 ? "You've really got this one!" :
+      stars === 2 ? "Good work — nearly there." :
+      stars === 1 ? "Keep going, it's getting easier." :
+                    "Tricky week. Ask your teacher to do this one with you.";
+    $("scoreBig").textContent = state.right + " / " + total;
+    $("gotStars").textContent = "★★★".slice(0,stars) + "☆☆☆".slice(0,3-stars);
+
+    $("trickyBox").innerHTML = state.tricky.length
+      ? "<div class='tricky'><h3>Words to come back to</h3><ul>" +
+        state.tricky.map(function (w) { return "<li>"+w+"</li>"; }).join("") + "</ul></div>"
+      : "";
+    show("s-done");
+  }
+
+  /* Keep going: rotate through whatever this week supports, so an open-ended
+     session doesn't become the same activity ten times over. */
+  function keepGoing() {
+    var week = weekByNum(state.week), can = available(week);
+    var order = ["read","picture","sort","gap"].filter(function (a) { return can[a]; });
+    state.rotate = (state.rotate + 1) % order.length;
+    start(order[state.rotate]);
+  }
+
+  function show(id) {
+    ["s-who","s-home","s-play","s-done"].forEach(function (s) {
+      $(s).classList.toggle("hidden", s !== id);
+    });
+    window.scrollTo(0,0);
+  }
+
+  $("quit").addEventListener("click", goHome);
+  $("keepGoing").addEventListener("click", keepGoing);
+  $("pickOther").addEventListener("click", goHome);
+  $("switchUser").addEventListener("click", function () { state.who = null; show("s-who"); buildWho(); });
+
+  buildWho();
+})();
+</script>
+</body>
+</html>
