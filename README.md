@@ -9,6 +9,36 @@ Each week pairs a phonics/word-study focus with a morphology focus and a grammar
 | File | Contents |
 |---|---|
 | [`Grade3_Phonics_Grammar_Scope_and_Sequence.md`](Grade3_Phonics_Grammar_Scope_and_Sequence.md) | The full 36-week sequence, in three term tables |
+| [`index.html`](index.html) | Word list generator — pick a week, get practice words |
+| [`data/sequence.js`](data/sequence.js) | The 36 weeks in a form the app can read |
+| [`data/wordbank.js`](data/wordbank.js) | The words, grouped by pattern and difficulty tier |
+
+## Word list generator
+
+Open `index.html` in any browser — double-click it, or drag it into a browser window. It needs no internet, no install, and no sign-in, so it works on a Chromebook that's offline.
+
+Pick a week and it generates practice words for that week's pattern, in three tiers:
+
+- **easy** — mostly one syllable, straightforward
+- **core** — the grade-level target
+- **challenge** — multisyllabic, or the pattern somewhere less obvious
+
+That tiering comes from the differentiation note in the sequence itself: hold the weekly pattern constant, vary the word complexity. Untick a tier to hide it, cap how many words each tier shows, **Shuffle** for a different draw, then **Print** for a clean sheet with the controls stripped out, or **Copy** to paste into a doc.
+
+Review and assessment weeks have no new pattern, so they generate no words by design.
+
+### Changing the words
+
+`data/wordbank.js` is meant to be edited — you know your readers better than any generated list does. Each pattern looks like this:
+
+```js
+"ai": { label: "Vowel team ai",
+  easy:      ["aim", "aid", "mail", ...],
+  core:      ["brain", "chain", "paint", ...],
+  challenge: ["afraid", "explain", ...] },
+```
+
+To add a word, type it inside the brackets in quotes, with a comma after the previous one. Save, then refresh the browser. Some patterns also have a `note:` line, which shows as a highlighted teaching caution above the words.
 
 ## How the year is structured
 
