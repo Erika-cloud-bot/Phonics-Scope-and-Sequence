@@ -1,0 +1,14 @@
+# Third-party / copyrighted teaching materials — do not commit.
+# Reading A-Z, K5 Learning, Canadian Daily Phonics, CORE Phonics Survey, etc.
+*.pdf
+*.docx
+*.doc
+*.zip
+
+# Local tooling
+.claude/
+
+# OS cruft
+Thumbs.db
+desktop.ini
+.DS_Store
