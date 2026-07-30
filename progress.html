@@ -47,6 +47,14 @@
   .filepick span:hover { filter:brightness(1.08); }
   .filepick input:focus + span { outline:2px solid var(--ink); outline-offset:2px; }
   details summary { cursor:pointer; margin-top:6px; }
+  .addrow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .addrow input, .addrow select, select.level {
+    font:inherit; font-size:14px; padding:7px 9px;
+    border:1px solid var(--line); border-radius:7px; background:var(--card); color:var(--ink);
+  }
+  .addrow input { min-width:180px; }
+  select.level { margin-left:auto; }
+  .student h2 .lvl { font-size:13px; font-weight:400; color:var(--soft); }
   .ok { color:var(--good); }
   .warn { color:#c4553d; }
   .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 22px; margin-bottom:20px; }
@@ -84,6 +92,22 @@
     </details>
   </div>
 
+  <div class="panel">
+    <h2 style="margin:0 0 4px;font-size:18px">Class list</h2>
+    <p class="sub" style="margin:0 0 12px">Set each reader's word level. Students never see it — it only decides which words come up.</p>
+    <div class="addrow">
+      <input id="newStudent" placeholder="Reader's name" maxlength="24">
+      <select id="newLevel">
+        <option value="easy">Easy words</option>
+        <option value="core" selected>Core words</option>
+        <option value="challenge">Challenging words</option>
+        <option value="mixed">A mix of all three</option>
+      </select>
+      <button class="action" id="addStudent">Add</button>
+      <span class="sub" id="addMsg"></span>
+    </div>
+  </div>
+
   <div id="out"></div>
 </div>
 
@@ -92,6 +116,8 @@
   "use strict";
   var STORE = "phonics.progress.v1";
   var ACT = { read:"Read It", picture:"Picture Match", sort:"Sort It", gap:"Missing Piece" };
+  var LEVELS = [ { v:"easy", t:"Easy words" }, { v:"core", t:"Core words" },
+                 { v:"challenge", t:"Challenging words" }, { v:"mixed", t:"A mix of all three" } ];
   var $ = function (id) { return document.getElementById(id); };
 
   function load() {
@@ -132,7 +158,13 @@
       var el = document.createElement("div");
       el.className = "student";
 
-      var head = "<h2>" + name + " <span class='stars'>★ " + (s.stars||0) + "</span></h2>" +
+      var lvl = s.level || "mixed";
+      var head = "<h2>" + name + " <span class='stars'>★ " + (s.stars||0) + "</span>" +
+        "<select class='level' data-level-for='" + name + "'>" +
+          LEVELS.map(function (o) {
+            return "<option value='"+o.v+"'"+(o.v===lvl?" selected":"")+">"+o.t+"</option>";
+          }).join("") +
+        "</select></h2>" +
         "<p class='meta'>" + rounds.length + " round" + (rounds.length===1?"":"s") +
         " · " + totalR + " of " + totalQ + " correct (" + pct + "%)</p>";
 
@@ -145,16 +177,27 @@
 
       var rows = rounds.slice(0,25).map(function (r) {
         return "<tr><td>"+r.d+"</td><td>Week "+r.w+"</td><td>"+(ACT[r.a]||r.a)+"</td>" +
+               "<td>"+(r.l ? r.l : "—")+"</td>" +
                "<td class='score'>"+r.r+"/"+r.t+"</td><td>"+"★".repeat(r.s||0)+"</td></tr>";
       }).join("");
 
       el.innerHTML = head + watchHtml +
-        "<table><thead><tr><th>Date</th><th>Week</th><th>Activity</th><th>Score</th><th></th></tr></thead>" +
+        "<table><thead><tr><th>Date</th><th>Week</th><th>Activity</th><th>Level</th><th>Score</th><th></th></tr></thead>" +
         "<tbody>" + rows + "</tbody></table>" +
         (rounds.length > 25 ? "<p class='sub'>Showing the 25 most recent.</p>" : "") +
         "<p><button class='action danger' data-del='"+name+"'>Remove "+name+"</button></p>";
 
       out.appendChild(el);
+    });
+
+    /* Changing a level takes effect the next time that reader starts a round. */
+    document.querySelectorAll("[data-level-for]").forEach(function (sel) {
+      sel.addEventListener("change", function () {
+        var d = load(), n = sel.getAttribute("data-level-for");
+        if (!d.students[n]) return;
+        d.students[n].level = sel.value;
+        save(d);
+      });
     });
 
     document.querySelectorAll("[data-del]").forEach(function (b) {
@@ -165,6 +208,27 @@
       });
     });
   }
+
+  $("addStudent").addEventListener("click", function () {
+    var name = $("newStudent").value.trim(), msg = $("addMsg");
+    if (!name) { msg.textContent = "Type a name first."; msg.className = "sub warn"; return; }
+    var d = load();
+    if (d.students[name]) {
+      // Don't clobber an existing reader's rounds — just set their level.
+      d.students[name].level = $("newLevel").value;
+      msg.textContent = name + " already here — level updated.";
+    } else {
+      d.students[name] = { stars:0, rounds:[], level:$("newLevel").value };
+      msg.textContent = name + " added.";
+    }
+    save(d);
+    msg.className = "sub ok";
+    $("newStudent").value = "";
+    render();
+  });
+  $("newStudent").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") $("addStudent").click();
+  });
 
   $("refresh").addEventListener("click", render);
 
@@ -190,7 +254,8 @@
     var data = load(), added = 0;
     Object.keys(incoming.students).forEach(function (n) {
       var inc = incoming.students[n];
-      if (!data.students[n]) data.students[n] = { stars:0, rounds:[] };
+      if (!data.students[n]) data.students[n] = { stars:0, rounds:[], level: inc.level || "core" };
+      else if (!data.students[n].level && inc.level) data.students[n].level = inc.level;
       var mine = data.students[n], seen = {};
       mine.rounds.forEach(function (r) { seen[r.d+"|"+r.w+"|"+r.a+"|"+r.r+"|"+r.t] = true; });
       (inc.rounds||[]).forEach(function (r) {
