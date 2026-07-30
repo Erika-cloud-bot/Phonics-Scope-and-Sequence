@@ -60,6 +60,16 @@ A child types their name, picks a world, picks a week, then chooses an activity.
 
 Ten questions a round, then a score with stars. **Keep going →** rotates to a different activity on the same week, so an open-ended session doesn't become the same thing ten times over.
 
+### Word levels
+
+Each reader can be set to **easy**, **core**, **challenging**, or **a mix**, and only gets words at that level. Set it on `progress.html` under **Class list** — either when adding a reader, or from the dropdown on their card afterwards. It takes effect the next round they start.
+
+**The child never sees their level.** A Grade 3 student who reads "Easy" on their screen knows exactly what it means, so the app just quietly serves the right words. The level does show on your progress page, in the class list and against each round.
+
+A few weeks don't have ten words at every level — Week 32 (word origins) has only five easy ones. Rather than run a short round, the app fills up from the neighbouring tier, leading with the reader's own level. Across all 36 weeks that leaves 73 of 84 week-and-level combinations fully on level, and no round is ever short.
+
+Readers who type their own name into the app start on **core**; you can change it afterwards.
+
 ### Meaning support for ESL readers
 
 Phonics drills assume the child already knows what the word means. That's usually safe for a native speaker and often isn't for an ESL student — decoding *thorn* correctly is no use if *thorn* means nothing.

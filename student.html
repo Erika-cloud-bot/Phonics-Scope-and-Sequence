@@ -202,7 +202,10 @@
     3: { css:"w-space",  name:"Deep Space 🚀", term:3 }
   };
 
-  var state = { who:null, world:1, week:null, activity:null,
+  /* state.level is set from the reader's saved level when they're picked.
+     It is never shown on screen — a child doesn't need to be told which
+     pile they're in. It only decides which words come up. */
+  var state = { who:null, level:"mixed", world:1, week:null, activity:null,
                 queue:[], at:0, right:0, tricky:[], rotate:0 };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -244,7 +247,7 @@
   }
   function record(round) {
     var all = loadAll();
-    var s = all.students[state.who] || { stars: 0, rounds: [] };
+    var s = all.students[state.who] || { stars: 0, rounds: [], level: state.level };
     s.rounds.push(round);
     s.stars += round.s;
     if (s.rounds.length > 300) s.rounds = s.rounds.slice(-300);
@@ -273,14 +276,45 @@
   function weekByNum(n) { return window.SEQUENCE.filter(function (w) { return w.week === n; })[0]; }
   function picOf(w) { return window.MEANINGS[w.toLowerCase()] || null; }
 
-  function poolFor(week) {
-    var out = [];
+  /* Which tiers a level draws from, best match first. A level takes its own
+     tier, and only borrows from the next one out if there aren't enough words
+     to fill a round — some patterns have just three or four words in a tier. */
+  var LEVEL_TIERS = {
+    easy:      ["easy", "core", "challenge"],
+    core:      ["core", "easy", "challenge"],
+    challenge: ["challenge", "core", "easy"],
+    mixed:     ["easy", "core", "challenge"]
+  };
+
+  function levelOf(name) {
+    var s = loadAll().students[name];
+    return (s && s.level) || "mixed";
+  }
+
+  /* Words for a week at the current reader's level. Returns the level's own
+     tier first; callers top up from later tiers only if they come up short. */
+  function poolFor(week, levelOverride) {
+    var level = levelOverride || state.level || "mixed";
+    var order = LEVEL_TIERS[level] || LEVEL_TIERS.mixed;
+    var byTier = { easy: [], core: [], challenge: [] };
+
     week.patterns.concat(week.morphology).forEach(function (key) {
       var e = window.WORDBANK[key];
       if (!e) return;
       ["easy","core","challenge"].forEach(function (t) {
-        (e[t]||[]).forEach(function (w) { out.push({ word:w, key:key, tier:t }); });
+        (e[t]||[]).forEach(function (w) { byTier[t].push({ word:w, key:key, tier:t }); });
       });
+    });
+
+    if (level === "mixed") return shuffled(byTier.easy.concat(byTier.core, byTier.challenge));
+
+    /* Preferred tier first, then widen only as far as needed. Each tier is
+       shuffled internally but the tier ORDER is kept, so when a round has to
+       be topped up it still leads with the reader's own level. Callers must
+       slice this without reshuffling, or that ordering is lost. */
+    var out = [];
+    order.forEach(function (t) {
+      if (out.length < ROUND) out = out.concat(shuffled(byTier[t]));
     });
     return out;
   }
@@ -351,7 +385,7 @@
     names.forEach(function (n) {
       var b = document.createElement("button");
       b.className = "btn"; b.textContent = n + "  ★" + all.students[n].stars;
-      b.addEventListener("click", function () { state.who = n; goHome(); });
+      b.addEventListener("click", function () { pickReader(n); });
       list.appendChild(b);
     });
     if (!names.length) list.innerHTML = "<p class='sub'>No readers yet — type a name below.</p>";
@@ -363,10 +397,18 @@
       var n = $("newName").value.trim();
       if (!n) return;
       var d = loadAll();
-      if (!d.students[n]) { d.students[n] = { stars:0, rounds:[] }; saveAll(d); }
-      state.who = n; goHome();
+      // A reader who types their own name starts on core; the teacher can
+      // change it later on the progress page.
+      if (!d.students[n]) { d.students[n] = { stars:0, rounds:[], level:"core" }; saveAll(d); }
+      pickReader(n);
     });
     $("newName").addEventListener("keydown", function (e) { if (e.key === "Enter") $("addName").click(); });
+  }
+
+  function pickReader(n) {
+    state.who = n;
+    state.level = levelOf(n);
+    goHome();
   }
 
   // ---------- home ----------
@@ -434,7 +476,9 @@
       state.columns = week.patterns.filter(function (k) { return (window.WORDBANK[k]||{}).label; });
       pool = pool.filter(function (i) { return state.columns.indexOf(i.key) !== -1; });
     }
-    state.queue = shuffled(pool).slice(0, ROUND);
+    /* poolFor has already shuffled within each tier and put the reader's own
+       level first. Reshuffling here would undo that, so just take the front. */
+    state.queue = pool.slice(0, ROUND);
     show("s-play"); buildDots(); nextQ();
   }
 
@@ -570,7 +614,7 @@
 
     record({ d: new Date().toISOString().slice(0,10), w: state.week,
              a: state.activity, r: state.right, t: total, s: stars,
-             tricky: state.tricky.slice(0,20) });
+             l: state.level, tricky: state.tricky.slice(0,20) });
 
     $("pipDone").innerHTML = pip(stars >= 2 ? "cheer" : "think");
     $("doneMsg").textContent =
