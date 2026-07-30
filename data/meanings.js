@@ -82,7 +82,7 @@ window.MEANINGS = {
   // places & travel
   "school": "🏫", "church": "⛪", "village": "🏘️", "town": "🏘️",
   "city": "🏙️", "cities": "🏙️", "hotel": "🏨", "building": "🏢",
-  "farm": "🚜", "park": "🏞️", "garden": "🌷", "playground": "🛝",
+  "farm": "🚜", "plow": "🚜", "park": "🏞️", "garden": "🌷", "playground": "🛝",
   "zoo": "🦁", "circus": "🎪", "bridge": "🌉", "road": "🛣️",
   "street": "🛣️", "railroad": "🛤️", "sidewalk": "🚶", "subway": "🚇",
   "car": "🚗", "cars": "🚗", "train": "🚂", "boat": "⛵", "sail": "⛵",

@@ -18,7 +18,7 @@ window.WORDBANK = {
   // ---------- Term 1 ----------
   "short-vowels": { label: "Short vowels / closed syllables",
     easy:      ["cat", "bed", "pig", "hop", "sun", "map", "net", "fix", "dot", "cup"],
-    core:      ["hand", "desk", "milk", "jump", "lamp", "nest", "wind", "sock", "bump", "gift"],
+    core:      ["hand", "desk", "milk", "jump", "lamp", "nest", "pond", "sock", "bump", "gift"],
     challenge: ["napkin", "basket", "sudden", "picnic", "rabbit", "contest", "insect", "mitten"] },
 
   "ai": { label: "Vowel team ai",
@@ -107,7 +107,7 @@ window.WORDBANK = {
     challenge: ["about", "around", "mountain", "thousand", "announce", "counter", "playground", "surround"] },
 
   "ow-loud": { label: "ow as in cow",
-    easy:      ["cow", "how", "now", "owl", "bow", "wow", "down", "town"],
+    easy:      ["cow", "how", "now", "owl", "plow", "wow", "down", "town"],
     core:      ["brown", "clown", "crowd", "crown", "frown", "growl", "howl", "gown"],
     challenge: ["flower", "power", "shower", "tower", "towel", "allow", "sunflower", "powerful"],
     note: "ow appears in Week 5 as long o and again here as the loud sound. Pulling both lists up together makes the double job visible." },
@@ -295,7 +295,7 @@ window.WORDBANK = {
   "spect":     { label: "Root spect (look)",     easy: ["inspect", "respect", "suspect"], core: ["spectacle", "spectator", "inspector"], challenge: ["perspective", "spectacular", "inspection"] },
   "struct":    { label: "Root struct (build)",   easy: ["construct", "instruct"], core: ["structure", "destruct", "instruction"], challenge: ["construction", "destructive", "reconstruct"] },
   "tract":     { label: "Root tract (pull)",     easy: ["attract", "subtract", "tractor"], core: ["extract", "contract", "distract", "traction"], challenge: ["attraction", "distraction", "subtraction"] },
-  "ject":      { label: "Root ject (throw)",     easy: ["eject", "inject", "reject"], core: ["project", "object", "subject", "eject"], challenge: ["injection", "projector", "rejection"] },
+  "ject":      { label: "Root ject (throw)",     easy: ["eject", "inject", "reject"], core: ["project", "object", "subject", "dejected"], challenge: ["injection", "projector", "rejection"] },
   "graph":     { label: "Root graph (write)",    easy: ["graph", "autograph"], core: ["photograph", "paragraph", "telegraph", "graphic"], challenge: ["biography", "geography", "photographer", "calligraphy"] },
   "scope":     { label: "Root scope (see)",      easy: ["scope"], core: ["telescope", "microscope", "periscope"], challenge: ["stethoscope", "kaleidoscope"] },
   "form":      { label: "Root form (shape)",     easy: ["form", "inform", "formal"], core: ["uniform", "transform", "perform", "reform"], challenge: ["formation", "information", "performance", "transformation"] },

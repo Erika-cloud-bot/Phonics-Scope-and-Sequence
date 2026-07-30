@@ -68,7 +68,27 @@ So concrete words carry a picture, shown alongside the word in every activity, a
 
 Only concrete nouns have one. Abstract words (*joy*, *remain*, *because*) are deliberately left blank, because a vague picture is worse than none. To add one, put `"word": "emoji",` on its own line in that file.
 
-There's a **Hear it** button on every word, using the voice built into the browser. It's ordinary text-to-speech, not a reading teacher.
+### Hearing the words
+
+Every word has a **Hear it** button, using the voice built into the browser. Three things make it as clear as it can be:
+
+- It picks the **best English voice installed**, rather than accepting the default — preferring Google voices (clearest on a Chromebook) and Canadian English over American.
+- **Pressing again says it more slowly.** Three presses go from normal, to slow, to very slow. A child who didn't catch it just presses again — there's no extra button to find.
+- Words the voice says wrongly can be **respelled** for the voice only.
+
+That last one matters for phonics specifically. Text-to-speech guesses at words that have two pronunciations, and it can guess the one that contradicts the lesson. `SAY_AS` near the top of `student.html` fixes those:
+
+```js
+var SAY_AS = {
+  "bow": "boe",   // force the long-o bow, not /baʊ/
+  "jamb": "jam",
+  "gnu": "noo"
+};
+```
+
+Only the sound changes — the child still sees the real word on screen. **If you hear a word come out wrong, note what it said** and it can be added as one line. This needs your ear; it can't be checked by reading the code.
+
+Two words were also removed from the word bank for this reason: *bow* no longer appears in the loud-`ow` list (it stays in the long-`o` list, matching its 🎀 picture), because the same word can't be pronounced two ways, and *wind* left the short-vowel list because the voice may say /waɪnd/ when the lesson wants /wɪnd/.
 
 ### Worlds and Pip
 

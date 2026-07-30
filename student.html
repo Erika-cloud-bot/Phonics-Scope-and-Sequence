@@ -184,6 +184,18 @@
     "homophones-2","compound","plural-s","plural-es","plural-ies","plural-irregular",
     "schwa","contractions","etymology","irregular"];
 
+  /* Words the voice says wrongly, and a spelling it says correctly. Only the
+     SOUND changes — the child still sees the real word on screen.
+
+     This needs your ear, not mine: if you hear a word come out wrong, tell me
+     what it said and I'll add a line. Format is  "word": "how to say it",
+     e.g. "bow": "boe" to force the long-o bow rather than bowing. */
+  var SAY_AS = {
+    "bow": "boe",     // Week 5 wants the long-o bow (🎀), not /baʊ/
+    "jamb": "jam",    // silent b
+    "gnu": "noo"      // silent g
+  };
+
   var WORLDS = {
     1: { css:"w-forest", name:"The Forest 🌲", term:1 },
     2: { css:"w-ocean",  name:"The Ocean 🌊",  term:2 },
@@ -282,10 +294,51 @@
   }
 
   var canSpeak = "speechSynthesis" in window;
+
+  /* Pick the best English voice available rather than taking the default,
+     which is often the worst one installed. Chromebooks usually have the
+     Google voices, which are markedly clearer than the fallbacks. */
+  var chosenVoice = null;
+  function pickVoice() {
+    if (!canSpeak) return null;
+    var all = speechSynthesis.getVoices();
+    if (!all.length) return null;
+    var en = all.filter(function (v) { return /^en(-|_|$)/i.test(v.lang); });
+    if (!en.length) return null;
+    function score(v) {
+      var s = 0;
+      if (/google/i.test(v.name)) s += 40;      // clearest in Chrome
+      if (/natural|neural/i.test(v.name)) s += 30;
+      if (/^en-CA/i.test(v.lang)) s += 12;      // Canadian first
+      else if (/^en-GB/i.test(v.lang)) s += 8;
+      else if (/^en-US/i.test(v.lang)) s += 6;
+      if (v.localService) s += 4;               // no network hiccup mid-word
+      return s;
+    }
+    return en.sort(function (a, b) { return score(b) - score(a); })[0];
+  }
+  if (canSpeak) {
+    chosenVoice = pickVoice();
+    // Voices often aren't ready on first paint; re-pick when they arrive.
+    speechSynthesis.onvoiceschanged = function () { chosenVoice = pickVoice(); };
+  }
+
+  /* Press Hear it again and it says the word more slowly. A child who didn't
+     catch it just presses again, with no extra button to find. */
+  var lastSaid = "", repeats = 0, lastAt = 0;
   function say(w) {
     if (!canSpeak) return;
-    try { speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(w); u.lang = "en-CA"; u.rate = .85; speechSynthesis.speak(u);
+    var now = Date.now();
+    repeats = (w === lastSaid && now - lastAt < 6000) ? Math.min(repeats + 1, 2) : 0;
+    lastSaid = w; lastAt = now;
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(SAY_AS[w.toLowerCase()] || w);
+      if (chosenVoice) { u.voice = chosenVoice; u.lang = chosenVoice.lang; }
+      else u.lang = "en-CA";
+      u.rate = [0.8, 0.65, 0.5][repeats];
+      u.pitch = 1;
+      speechSynthesis.speak(u);
     } catch (e) {}
   }
   function sayBtn(w) { return canSpeak ? '<button class="btn say" data-say="'+w+'">🔊 Hear it</button>' : ""; }
