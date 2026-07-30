@@ -104,8 +104,10 @@ Progress is stored **in the browser on that Chromebook**. Nothing is sent anywhe
 
 The cost of that: **a student's history doesn't follow them between machines.** If they use a different Chromebook tomorrow, that device starts empty. To deal with it:
 
-- **Download backup** saves a `.json` file from that device
-- **Restore from backup** merges a file back in — rounds already present are skipped, so merging the same file twice is safe
+- **Download backup** saves a `.json` file from that device. It lands in Downloads. You never need to open it — if Windows asks which app to use, just close that prompt; the file is already saved.
+- **Restore from backup** → **Choose backup files…** lets you pick **several at once**, so you can collect from every Chromebook in one go.
+
+Merging is safe to repeat: rounds are matched on date, week, activity and score, so re-merging a file you've already done adds nothing. If a file is corrupt it's named in the message and the others still merge.
 
 Realistically, collect backups occasionally onto one machine rather than daily.
 
