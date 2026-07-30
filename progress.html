@@ -38,7 +38,17 @@
   td.score { font-variant-numeric:tabular-nums; }
   .empty { color:var(--soft); font-style:italic; }
   textarea { width:100%; min-height:120px; font:13px/1.4 Consolas, monospace;
-             border:1px solid var(--line); border-radius:8px; padding:10px; }
+             border:1px solid var(--line); border-radius:8px; padding:10px; margin-top:10px; }
+  /* Hide the raw file input and dress its label as a button — the default
+     control is small and easy to miss. */
+  .filepick input[type=file] { position:absolute; width:1px; height:1px; opacity:0; }
+  .filepick span { display:inline-block; font-size:14px; padding:8px 16px; cursor:pointer;
+                   background:var(--accent); color:#fff; border-radius:7px; }
+  .filepick span:hover { filter:brightness(1.08); }
+  .filepick input:focus + span { outline:2px solid var(--ink); outline-offset:2px; }
+  details summary { cursor:pointer; margin-top:6px; }
+  .ok { color:var(--good); }
+  .warn { color:#c4553d; }
   .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 22px; margin-bottom:20px; }
 </style>
 </head>
@@ -57,9 +67,21 @@
   </div>
 
   <div class="panel hidden" id="importPanel" style="display:none">
-    <p class="sub">Paste the contents of a backup file, then press Merge. Existing students are kept — rounds are added, not replaced.</p>
-    <textarea id="importText" placeholder='{"students":{ ... }}'></textarea>
-    <p><button class="action" id="doImport">Merge</button> <span id="importMsg" class="sub"></span></p>
+    <p class="sub">Existing students are kept — rounds are added, never replaced. Merging the same backup twice is safe.</p>
+
+    <p><label class="filepick">
+      <input type="file" id="importFiles" accept=".json,application/json" multiple>
+      <span>Choose backup files…</span>
+    </label>
+    <span class="sub">You can select several at once.</span></p>
+
+    <p id="fileMsg" class="sub"></p>
+
+    <details>
+      <summary class="sub">Or paste the text instead</summary>
+      <textarea id="importText" placeholder='{"students":{ ... }}'></textarea>
+      <p><button class="action" id="doImport">Merge pasted text</button> <span id="importMsg" class="sub"></span></p>
+    </details>
   </div>
 
   <div id="out"></div>
@@ -160,19 +182,16 @@
     p.style.display = p.style.display === "none" ? "block" : "none";
   });
 
-  $("doImport").addEventListener("click", function () {
-    var msg = $("importMsg");
-    var incoming;
-    try { incoming = JSON.parse($("importText").value); }
-    catch (e) { msg.textContent = "That isn't valid backup text."; return; }
-    if (!incoming || !incoming.students) { msg.textContent = "No students found in that backup."; return; }
-
+  /* Merge one backup into what's already here. Rounds are matched on
+     date+week+activity+score, so re-merging the same file adds nothing.
+     Returns how many rounds were genuinely new. */
+  function mergeInto(incoming) {
+    if (!incoming || !incoming.students) throw new Error("no students");
     var data = load(), added = 0;
     Object.keys(incoming.students).forEach(function (n) {
       var inc = incoming.students[n];
-      if (!data.students[n]) { data.students[n] = { stars:0, rounds:[] }; }
-      var mine = data.students[n];
-      var seen = {};
+      if (!data.students[n]) data.students[n] = { stars:0, rounds:[] };
+      var mine = data.students[n], seen = {};
       mine.rounds.forEach(function (r) { seen[r.d+"|"+r.w+"|"+r.a+"|"+r.r+"|"+r.t] = true; });
       (inc.rounds||[]).forEach(function (r) {
         var k = r.d+"|"+r.w+"|"+r.a+"|"+r.r+"|"+r.t;
@@ -181,7 +200,48 @@
       mine.rounds.sort(function (a,b) { return a.d < b.d ? -1 : 1; });
     });
     save(data);
+    return added;
+  }
+
+  function readFile(file) {
+    return new Promise(function (resolve) {
+      var fr = new FileReader();
+      fr.onload  = function () {
+        try { resolve({ name:file.name, added:mergeInto(JSON.parse(fr.result)) }); }
+        catch (e) { resolve({ name:file.name, error:true }); }
+      };
+      fr.onerror = function () { resolve({ name:file.name, error:true }); };
+      fr.readAsText(file);
+    });
+  }
+
+  $("importFiles").addEventListener("change", function () {
+    var files = Array.prototype.slice.call(this.files);
+    if (!files.length) return;
+    var msg = $("fileMsg");
+    msg.className = "sub";
+    msg.textContent = "Reading " + files.length + " file" + (files.length===1?"":"s") + "…";
+
+    Promise.all(files.map(readFile)).then(function (results) {
+      var bad   = results.filter(function (r) { return r.error; });
+      var added = results.reduce(function (a,r) { return a + (r.added||0); }, 0);
+      var parts = [];
+      parts.push(added + " new round" + (added===1?"":"s") + " merged from " +
+                 (results.length - bad.length) + " file" + (results.length-bad.length===1?"":"s") + ".");
+      if (bad.length) parts.push("Couldn't read: " + bad.map(function (r) { return r.name; }).join(", ") + ".");
+      msg.textContent = parts.join(" ");
+      msg.className = "sub " + (bad.length ? "warn" : "ok");
+      render();
+    });
+    this.value = "";   // let the same file be picked again if needed
+  });
+
+  $("doImport").addEventListener("click", function () {
+    var msg = $("importMsg"), added;
+    try { added = mergeInto(JSON.parse($("importText").value)); }
+    catch (e) { msg.textContent = "That isn't valid backup text."; msg.className = "sub warn"; return; }
     msg.textContent = added + " new round" + (added===1?"":"s") + " merged.";
+    msg.className = "sub ok";
     render();
   });
 
