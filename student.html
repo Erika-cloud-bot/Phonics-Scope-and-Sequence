@@ -259,6 +259,74 @@
     return s ? s.stars : 0;
   }
 
+  // ---------- sending rounds to the teacher's Sheet (optional) ----------
+  /* Saving to this device always happens first and never depends on the
+     network. Sending is a bonus on top: if it fails, the round waits in a
+     queue and goes with the next one. Nothing is ever lost to bad wifi. */
+  var SYNC_KEY = "phonics.sync.url";
+  var QUEUE_KEY = "phonics.sync.queue";
+  var DEVICE_KEY = "phonics.device.name";
+
+  /* The address can arrive as ?sync=... on the link — which is how the
+     Classroom link sets it up — and is then remembered on this device. */
+  (function captureSyncUrl() {
+    try {
+      var m = location.search.match(/[?&]sync=([^&]+)/);
+      if (m) {
+        var url = decodeURIComponent(m[1]);
+        if (/^https:\/\/script\.google\.com\//.test(url)) localStorage.setItem(SYNC_KEY, url);
+      }
+    } catch (e) {}
+  })();
+
+  function syncUrl() {
+    try { return localStorage.getItem(SYNC_KEY) || ""; } catch (e) { return ""; }
+  }
+  function deviceName() {
+    try {
+      var d = localStorage.getItem(DEVICE_KEY);
+      if (!d) { d = "device-" + Math.random().toString(36).slice(2, 7); localStorage.setItem(DEVICE_KEY, d); }
+      return d;
+    } catch (e) { return "unknown"; }
+  }
+  function readQueue() {
+    try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; } catch (e) { return []; }
+  }
+  function writeQueue(q) {
+    try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q.slice(-200))); } catch (e) {}
+  }
+
+  /* Apps Script doesn't return cross-origin headers a browser will accept on
+     POST, so this is deliberately fire-and-forget: no-cors means we can't read
+     the reply. A genuine network failure still rejects, which is the case that
+     matters — that's when the round needs to wait for wifi. */
+  function flushQueue() {
+    var url = syncUrl(), q = readQueue();
+    if (!url || !q.length || !window.fetch) return;
+    fetch(url, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ rounds: q })
+    }).then(function () {
+      writeQueue([]);          // assume delivered; duplicates are harmless
+    }).catch(function () {
+      /* leave it queued and try again after the next round */
+    });
+  }
+
+  function queueRound(round) {
+    if (!syncUrl()) return;
+    var q = readQueue();
+    q.push({
+      student: state.who, level: state.level, device: deviceName(),
+      d: round.d, w: round.w, a: round.a, r: round.r, t: round.t,
+      s: round.s, tricky: round.tricky
+    });
+    writeQueue(q);
+    flushQueue();
+  }
+
   // ---------- helpers ----------
   function shuffled(a) {
     a = a.slice();
@@ -612,9 +680,11 @@
     var total = state.queue.length, pct = total ? state.right/total : 0;
     var stars = pct >= .9 ? 3 : pct >= .7 ? 2 : pct >= .4 ? 1 : 0;
 
-    record({ d: new Date().toISOString().slice(0,10), w: state.week,
-             a: state.activity, r: state.right, t: total, s: stars,
-             l: state.level, tricky: state.tricky.slice(0,20) });
+    var round = { d: new Date().toISOString().slice(0,10), w: state.week,
+                  a: state.activity, r: state.right, t: total, s: stars,
+                  l: state.level, tricky: state.tricky.slice(0,20) };
+    record(round);      // this device, always
+    queueRound(round);  // the teacher's Sheet, if one is set up
 
     $("pipDone").innerHTML = pip(stars >= 2 ? "cheer" : "think");
     $("doneMsg").textContent =
@@ -652,6 +722,9 @@
   $("keepGoing").addEventListener("click", keepGoing);
   $("pickOther").addEventListener("click", goHome);
   $("switchUser").addEventListener("click", function () { state.who = null; show("s-who"); buildWho(); });
+
+  /* Anything stranded by bad wifi last time goes out as soon as we load. */
+  flushQueue();
 
   buildWho();
 })();

@@ -121,6 +121,58 @@ Merging is safe to repeat: rounds are matched on date, week, activity and score,
 
 Realistically, collect backups occasionally onto one machine rather than daily.
 
+## Seeing the whole class in one place (optional)
+
+Without this, progress stays on each Chromebook and you'd have to visit each one. With it, rounds land in a Google Sheet in **your own Drive** as students go, and one page shows everybody.
+
+This is optional. Skip it and everything else still works exactly as before.
+
+### Why a Sheet rather than a proper service
+
+The data stays in your Google Drive, under the Workspace agreement your board already has, instead of on a new company's servers. That's a much smaller conversation than adopting a third-party tool — but still worth checking with whoever handles software at your board before you roll it out.
+
+### Setting it up — once, about ten minutes
+
+**Make the Sheet and add the script**
+
+1. Create a new Google Sheet in your Drive. Name it something like *Phonics Progress*.
+2. **Extensions → Apps Script**. A code editor opens in a new tab.
+3. Delete whatever's in the editor, then paste in everything from [`apps-script/Code.gs`](apps-script/Code.gs).
+4. Click the save icon.
+
+**Publish it so Chromebooks can reach it**
+
+5. **Deploy → New deployment**.
+6. Click the gear next to "Select type" and choose **Web app**.
+7. Set **Execute as: Me**, and **Who has access: Anyone**.
+8. Click **Deploy**. Google will ask you to authorise it — this is your own script asking for permission to write to your own Sheet. You may see an "unverified app" warning; **Advanced → Go to (your project)** gets past it.
+9. Copy the **Web app URL**. It looks like `https://script.google.com/macros/s/AKfy…long…/exec`.
+
+**Point the app at it**
+
+10. Open `progress.html`, paste that address into the **Whole class** box, click **Save**.
+11. In Google Classroom, post the student link with the address on the end:
+
+```
+https://erika-cloud-bot.github.io/Phonics-Scope-and-Sequence/student.html?sync=PASTE_YOUR_URL_HERE
+```
+
+A student clicking that link has their Chromebook set up automatically — there's nothing to configure per device. It's remembered afterwards, so later visits work even from a plain bookmark.
+
+Then click **Load whole class** on the progress page whenever you want to see everyone.
+
+### Things worth knowing
+
+**"Who has access: Anyone" is required.** Students aren't signing in to anything, so the script has to accept unauthenticated writes. The address is long and random, so nobody finds it by guessing — but anyone who *has* it could write rows into your Sheet. That's why the address isn't in this public repository, and why it's passed on the link instead. It's a phonics sheet, so the realistic risk is low, but you should know it rather than find out.
+
+**Nothing depends on wifi.** Rounds always save to the Chromebook first. If the send fails, the round waits in a queue and goes out with the next one, or next time the app opens. Bad wifi delays the Sheet; it never loses a round.
+
+**If you change `Code.gs` later**, you must deploy again — **Deploy → Manage deployments → edit (pencil) → Version: New version → Deploy**. Editing the code alone changes nothing on the live address; this catches everybody out once.
+
+**The Sheet may pick up the odd duplicate row.** Sending is deliberately fire-and-forget, so a round can occasionally be sent twice. The progress page ignores repeats when it reads them back, so your totals stay right.
+
+**The class view is read-only.** Word levels and removing a reader still work on the *This device* view — the Sheet is a report of what happened, not something to edit.
+
 ### What it deliberately doesn't do
 
 - **No speech recognition.** It cannot hear a child read. Read It asks them to self-mark, which is honest rather than faked.
