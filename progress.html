@@ -54,7 +54,10 @@
   }
   .addrow input { min-width:180px; }
   select.level { margin-left:auto; }
-  .student h2 .lvl { font-size:13px; font-weight:400; color:var(--soft); }
+  .student h2 .lvl { font-size:13px; font-weight:400; color:var(--soft); margin-left:auto; }
+  .viewswitch { display:flex; gap:8px; align-items:center; margin-bottom:16px; }
+  button.action.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.action.on:hover { color:#fff; }
   .ok { color:var(--good); }
   .warn { color:#c4553d; }
   .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 22px; margin-bottom:20px; }
@@ -90,6 +93,23 @@
       <textarea id="importText" placeholder='{"students":{ ... }}'></textarea>
       <p><button class="action" id="doImport">Merge pasted text</button> <span id="importMsg" class="sub"></span></p>
     </details>
+  </div>
+
+  <div class="panel">
+    <h2 style="margin:0 0 4px;font-size:18px">Whole class</h2>
+    <p class="sub" style="margin:0 0 12px">Pulls every student's rounds from your Google Sheet, so you don't have to visit each Chromebook. Setup is in the README.</p>
+    <div class="addrow">
+      <input id="syncUrl" placeholder="https://script.google.com/macros/s/…/exec" style="flex:1;min-width:280px">
+      <button class="action" id="saveSync">Save</button>
+      <button class="action" id="loadClass">Load whole class</button>
+      <span class="sub" id="syncMsg"></span>
+    </div>
+  </div>
+
+  <div class="viewswitch" id="viewSwitch" style="display:none">
+    <button class="action" id="viewLocal">This device</button>
+    <button class="action" id="viewClass">Whole class</button>
+    <span class="sub" id="viewNote"></span>
   </div>
 
   <div class="panel">
@@ -138,13 +158,29 @@
       .sort(function (a,b) { return b.n - a.n || a.w.localeCompare(b.w); });
   }
 
+  /* Two sources of the same shape: this device's storage, or everything
+     pulled back from the Sheet. classData stays null until it's loaded. */
+  var classData = null;
+  var view = "local";
+
   function render() {
-    var data = load(), names = Object.keys(data.students).sort(), out = $("out");
+    var fromClass = (view === "class" && classData);
+    var data = fromClass ? classData : load();
+    var names = Object.keys(data.students).sort(), out = $("out");
     out.innerHTML = "";
 
+    $("viewSwitch").style.display = classData ? "flex" : "none";
+    $("viewLocal").className = "action" + (fromClass ? "" : " on");
+    $("viewClass").className = "action" + (fromClass ? " on" : "");
+    $("viewNote").textContent = fromClass
+      ? "Everyone's rounds, from the Sheet."
+      : "Only what happened on this computer.";
+
     if (!names.length) {
-      out.innerHTML = "<p class='empty'>Nothing recorded on this device yet. " +
-        "Progress appears here once a student finishes a round in the practice app.</p>";
+      out.innerHTML = fromClass
+        ? "<p class='empty'>The Sheet has no rounds in it yet.</p>"
+        : "<p class='empty'>Nothing recorded on this device yet. " +
+          "Progress appears here once a student finishes a round in the practice app.</p>";
       return;
     }
 
@@ -159,12 +195,16 @@
       el.className = "student";
 
       var lvl = s.level || "mixed";
+      /* Level and delete only make sense against this device's own copy —
+         the Sheet is a read-only report of what already happened. */
+      var control = fromClass
+        ? "<span class='lvl'>" + (LEVELS.filter(function(o){return o.v===lvl;})[0]||{t:lvl}).t + "</span>"
+        : "<select class='level' data-level-for='" + name + "'>" +
+            LEVELS.map(function (o) {
+              return "<option value='"+o.v+"'"+(o.v===lvl?" selected":"")+">"+o.t+"</option>";
+            }).join("") + "</select>";
       var head = "<h2>" + name + " <span class='stars'>★ " + (s.stars||0) + "</span>" +
-        "<select class='level' data-level-for='" + name + "'>" +
-          LEVELS.map(function (o) {
-            return "<option value='"+o.v+"'"+(o.v===lvl?" selected":"")+">"+o.t+"</option>";
-          }).join("") +
-        "</select></h2>" +
+        control + "</h2>" +
         "<p class='meta'>" + rounds.length + " round" + (rounds.length===1?"":"s") +
         " · " + totalR + " of " + totalQ + " correct (" + pct + "%)</p>";
 
@@ -185,7 +225,7 @@
         "<table><thead><tr><th>Date</th><th>Week</th><th>Activity</th><th>Level</th><th>Score</th><th></th></tr></thead>" +
         "<tbody>" + rows + "</tbody></table>" +
         (rounds.length > 25 ? "<p class='sub'>Showing the 25 most recent.</p>" : "") +
-        "<p><button class='action danger' data-del='"+name+"'>Remove "+name+"</button></p>";
+        (fromClass ? "" : "<p><button class='action danger' data-del='"+name+"'>Remove "+name+"</button></p>");
 
       out.appendChild(el);
     });
@@ -208,6 +248,89 @@
       });
     });
   }
+
+  // ---------- whole-class view, read back from the Sheet ----------
+  var SYNC_KEY = "phonics.sync.url";
+
+  /* Apps Script won't answer a normal cross-origin fetch, so ask for the data
+     as a script instead. Clumsy, but it works from any device with no proxy
+     and no server of our own. */
+  function jsonp(url, done) {
+    var name = "phonicsCb" + Math.random().toString(36).slice(2, 9);
+    var script = document.createElement("script");
+    var timer = setTimeout(function () { finish({ ok:false, error:"took too long to answer" }); }, 25000);
+    var settled = false;
+    function finish(data) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { delete window[name]; } catch (e) { window[name] = undefined; }
+      if (script.parentNode) script.parentNode.removeChild(script);
+      done(data);
+    }
+    window[name] = function (data) { finish(data); };
+    script.onerror = function () { finish({ ok:false, error:"couldn't reach the Sheet" }); };
+    script.src = url + (url.indexOf("?") > -1 ? "&" : "?") + "callback=" + name + "&_=" + Date.now();
+    document.head.appendChild(script);
+  }
+
+  /* Rows into the same shape as local storage. Sending is fire-and-forget, so
+     a round can occasionally land twice — drop repeats on the way in. */
+  function groupRounds(rows) {
+    var students = {}, seen = {};
+    rows.forEach(function (r) {
+      var name = String(r.student || "").trim();
+      if (!name) return;
+      var key = [name, r.d, r.w, r.a, r.r, r.t].join("|");
+      if (seen[key]) return;
+      seen[key] = true;
+      if (!students[name]) students[name] = { stars:0, rounds:[], level:r.level || "mixed" };
+      students[name].rounds.push({ d:r.d, w:r.w, a:r.a, r:Number(r.r)||0,
+                                   t:Number(r.t)||0, s:Number(r.s)||0,
+                                   l:r.level, tricky:r.tricky || [] });
+      students[name].stars += Number(r.s) || 0;
+      if (r.level) students[name].level = r.level;
+    });
+    Object.keys(students).forEach(function (n) {
+      students[n].rounds.sort(function (a,b) { return a.d < b.d ? -1 : 1; });
+    });
+    return { students: students };
+  }
+
+  $("saveSync").addEventListener("click", function () {
+    var url = $("syncUrl").value.trim(), msg = $("syncMsg");
+    if (url && !/^https:\/\/script\.google\.com\//.test(url)) {
+      msg.textContent = "That doesn't look like an Apps Script address.";
+      msg.className = "sub warn"; return;
+    }
+    localStorage.setItem(SYNC_KEY, url);
+    msg.textContent = url ? "Saved." : "Cleared.";
+    msg.className = "sub ok";
+  });
+
+  $("loadClass").addEventListener("click", function () {
+    var url = ($("syncUrl").value.trim() || localStorage.getItem(SYNC_KEY) || "");
+    var msg = $("syncMsg");
+    if (!url) { msg.textContent = "Paste your Sheet address first."; msg.className = "sub warn"; return; }
+    msg.textContent = "Loading…"; msg.className = "sub";
+    jsonp(url, function (res) {
+      if (!res || !res.ok) {
+        msg.textContent = "Couldn't load: " + ((res && res.error) || "no answer") +
+                          ". Check the address, and that the Web App is shared with anyone.";
+        msg.className = "sub warn";
+        return;
+      }
+      classData = groupRounds(res.rounds || []);
+      var n = Object.keys(classData.students).length;
+      msg.textContent = "Loaded " + (res.rounds || []).length + " rounds from " + n + " student" + (n===1?"":"s") + ".";
+      msg.className = "sub ok";
+      view = "class";
+      render();
+    });
+  });
+
+  $("viewLocal").addEventListener("click", function () { view = "local"; render(); });
+  $("viewClass").addEventListener("click", function () { if (classData) { view = "class"; render(); } });
 
   $("addStudent").addEventListener("click", function () {
     var name = $("newStudent").value.trim(), msg = $("addMsg");
@@ -315,6 +438,7 @@
     localStorage.removeItem(STORE); render();
   });
 
+  $("syncUrl").value = localStorage.getItem(SYNC_KEY) || "";
   render();
 })();
 </script>
