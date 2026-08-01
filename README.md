@@ -161,6 +161,15 @@ A student clicking that link has their Chromebook set up automatically — there
 
 Then click **Load whole class** on the progress page whenever you want to see everyone.
 
+### Watching it during a lesson
+
+Tick **Keep updating** next to that button and the page refreshes itself every 30 seconds — students' rounds appear as they finish them, without you touching anything. A green dot and the time of the last update show while it's live.
+
+- Your scroll position is kept, so a refresh landing while you're reading someone's list doesn't throw you back to the top
+- It pauses while the tab is in the background and catches up the moment you return
+- If the network drops, the numbers already on screen **stay put** — it says it's still trying rather than emptying the page
+- The setting is remembered, so the page comes back live next time you open it
+
 ### Things worth knowing
 
 **"Who has access: Anyone" is required.** Students aren't signing in to anything, so the script has to accept unauthenticated writes. The address is long and random, so nobody finds it by guessing — but anyone who *has* it could write rows into your Sheet. That's why the address isn't in this public repository, and why it's passed on the link instead. It's a phonics sheet, so the realistic risk is low, but you should know it rather than find out.
