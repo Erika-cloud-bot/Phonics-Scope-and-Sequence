@@ -43,6 +43,8 @@ Review and assessment weeks have no new pattern, so they generate no words by de
 
 To add a word, type it inside the brackets in quotes, with a comma after the previous one. Save, then refresh the browser. Some patterns also have a `note:` line, which shows as a highlighted teaching caution above the words.
 
+Most tiers hold 15–20 words, which is more than any single lesson needs — deliberately. The generator shuffles and takes as many as you ask for, so a week revisited later draws a different set. A few patterns are shorter because English simply has few words in them: there are only so many `spl-` words, and `scope` has exactly one easy one. Those lists are as full as the language allows.
+
 ## Student practice app
 
 Open `student.html` — or click **Student practice app** from the word list generator. No install, no internet, no sign-in.
@@ -66,7 +68,7 @@ Each reader can be set to **easy**, **core**, **challenging**, or **a mix**, and
 
 **The child never sees their level.** A Grade 3 student who reads "Easy" on their screen knows exactly what it means, so the app just quietly serves the right words. The level does show on your progress page, in the class list and against each round.
 
-A few weeks don't have ten words at every level — Week 32 (word origins) has only five easy ones. Rather than run a short round, the app fills up from the neighbouring tier, leading with the reader's own level. Across all 36 weeks that leaves 73 of 84 week-and-level combinations fully on level, and no round is ever short.
+Every week now holds a full ten-word round at every level — all 84 week-and-level combinations, on level, with words to spare. If you cut a tier back far enough that it can't fill a round, the app tops up from the neighbouring tier rather than running short, leading with the reader's own level.
 
 Readers who type their own name into the app start on **core**; you can change it afterwards.
 
