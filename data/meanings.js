@@ -27,11 +27,20 @@ window.MEANINGS = {
   "insect": "🐛", "butterfly": "🦋", "butterflies": "🦋", "dragon": "🐉",
   "zebra": "🦓", "elephant": "🐘", "raccoon": "🦝", "oyster": "🦪",
   "dinosaur": "🦕", "foxes": "🦊", "wolves": "🐺", "deer": "🦌",
+  "hen": "🐔", "rooster": "🐓", "kitten": "🐈", "pony": "🐴", "horse": "🐴",
+  "donkey": "🐴", "goose": "🦢", "moose": "🦌", "elk": "🦌", "reindeer": "🦌",
+  "bison": "🦬", "poodle": "🐩", "kangaroo": "🦘", "panda": "🐼", "koala": "🐨",
+  "giraffe": "🦒", "unicorn": "🦄", "octopus": "🐙", "grasshopper": "🦗",
+  "hornet": "🐝", "ladybird": "🐞", "sparrow": "🐦", "seagull": "🐦",
+  "blackbird": "🐦", "woodpecker": "🐦", "trout": "🐟", "salmon": "🐟",
+  "queen": "👸", "princesses": "👸", "dentist": "🦷", "plumber": "🔧",
+  "firefighter": "🧑‍🚒", "gardener": "🧑‍🌾", "jockey": "🏇",
 
   // body
   "arm": "💪", "feet": "🦶", "foot": "🦶", "hand": "✋", "knee": "🦵",
   "teeth": "🦷", "tooth": "🦷", "thumb": "👍", "mouth": "👄", "eye": "👁️",
   "brain": "🧠", "wrist": "⌚", "elbow": "💪", "throat": "🗣️",
+  "finger": "👆", "thumbprint": "👍", "eyebrow": "👁️", "haircut": "💇",
 
   // nature & weather
   "rain": "🌧️", "snow": "❄️", "cloud": "☁️", "storm": "⛈️", "sun": "☀️",
@@ -41,6 +50,10 @@ window.MEANINGS = {
   "beach": "🏖️", "beaches": "🏖️", "soil": "🌱", "rainbow": "🌈",
   "shadow": "🌑", "sky": "🌌", "valley": "🏞️", "jungle": "🌴",
   "spring": "🌱", "winter": "❄️", "wood": "🪵", "thorn": "🌹",
+  "maple": "🍁", "willow": "🌳", "birch": "🌳", "leaves": "🍃", "seaweed": "🌿",
+  "mushroom": "🍄", "snowflake": "❄️", "snowstorm": "🌨️", "lightning": "⚡",
+  "thunderstorm": "⛈️", "waterfall": "💧", "volcano": "🌋", "hurricane": "🌀",
+  "mountains": "⛰️", "hilltop": "⛰️", "seashell": "🐚", "foam": "🫧",
 
   // food
   "eat": "🍽️", "food": "🍔", "meat": "🥩", "bean": "🫘", "corn": "🌽",
@@ -52,6 +65,14 @@ window.MEANINGS = {
   "candies": "🍬", "hotdog": "🌭", "oatmeal": "🥣", "wheat": "🌾",
   "hay": "🌾", "tomatoes": "🍅", "potatoes": "🥔", "sandwiches": "🥪",
   "groceries": "🛒", "vegetables": "🥕",
+  "peanut": "🥜", "teapot": "🫖", "cookie": "🍪", "biscuit": "🍪",
+  "noodle": "🍜", "pancake": "🥞", "bacon": "🥓", "pizza": "🍕",
+  "salad": "🥗", "celery": "🥬", "cereal": "🥣", "carrot": "🥕",
+  "bowl": "🥣", "loaf": "🍞", "toaster": "🍞", "grain": "🌾",
+  "potato": "🥔", "tomato": "🍅", "hamburger": "🍔", "watermelon": "🍉",
+  "grapefruit": "🍊", "strawberries": "🍓", "blueberries": "🫐",
+  "breakfast": "🍳", "kitchen": "🍳", "teaspoon": "🥄", "pickle": "🥒",
+  "pumpkin": "🎃", "chowder": "🍲", "honeycomb": "🍯",
 
   // home & objects
   "house": "🏠", "bedroom": "🛏️", "bathroom": "🛁", "bathtub": "🛁",
@@ -78,6 +99,16 @@ window.MEANINGS = {
   "oil": "🛢️", "straw": "🥤", "cage": "🔒", "backpack": "🎒",
   "wreath": "🎄", "sleigh": "🛷", "square": "⬜", "circle": "⭕",
   "bubble": "🫧", "puddle": "💧", "water": "💧", "splash": "💦",
+  "bag": "👜", "backpack": "🎒", "knapsack": "🎒", "suitcase": "🧳",
+  "trunk": "🧳", "mop": "🧹", "pin": "📌", "stamp": "📮", "mailbox": "📫",
+  "tub": "🛁", "bottle": "🧴", "scarf": "🧣", "scarves": "🧣",
+  "knives": "🔪", "wrench": "🔧", "torch": "🔦", "flashlight": "🔦",
+  "curtain": "🪟", "stool": "🪑", "couch": "🛋️", "blouse": "👚",
+  "hoodie": "🧥", "button": "🔘", "bookshelf": "📚", "bookcase": "📚",
+  "textbook": "📚", "newspaper": "📰", "calendar": "📅", "tablet": "📱",
+  "piano": "🎹", "radio": "📻", "video": "📹", "projector": "📽️",
+  "thermometer": "🌡️", "protractor": "📐", "triangle": "📐",
+  "package": "📦", "roof": "🏠", "tool": "🔨", "goal": "🥅",
 
   // places & travel
   "school": "🏫", "church": "⛪", "village": "🏘️", "town": "🏘️",
@@ -87,11 +118,19 @@ window.MEANINGS = {
   "street": "🛣️", "railroad": "🛤️", "sidewalk": "🚶", "subway": "🚇",
   "car": "🚗", "cars": "🚗", "train": "🚂", "boat": "⛵", "sail": "⛵",
   "bicycle": "🚲", "buses": "🚌", "wagon": "🛒", "pilot": "✈️",
+  "bus": "🚌", "cab": "🚕", "jet": "✈️", "cart": "🛒", "tractor": "🚜",
+  "helicopter": "🚁", "motorcycle": "🏍️", "scooter": "🛴", "skateboard": "🛹",
+  "trolley": "🚋", "railway": "🛤️", "highway": "🛣️", "roadside": "🛣️",
+  "kayak": "🛶", "canoe": "🛶", "toboggan": "🛷", "sailboat": "⛵",
+  "rowboat": "🚣", "lifeboat": "🛟", "igloo": "🛖", "barn": "🛖",
+  "museum": "🏛️", "hospital": "🏥", "apartment": "🏢", "tower": "🗼",
+  "aquarium": "🐠", "orbit": "🪐", "campfire": "🔥", "airport": "🛫",
 
   // sports & play
   "football": "🏈", "hockey": "🏒", "tennis": "🎾", "sport": "⚽",
   "swim": "🏊", "pool": "🏊", "shower": "🚿", "picnic": "🧺",
   "birthday": "🎂", "holiday": "🎉", "magic": "✨",
+  "volleyball": "🏐", "snowball": "⛄", "daydream": "💭", "daylight": "☀️",
 
   // colours & numbers
   "green": "🟢", "yellow": "🟡", "purple": "🟣", "brown": "🟤",
