@@ -56,6 +56,10 @@
   select.level { margin-left:auto; }
   .student h2 .lvl { font-size:13px; font-weight:400; color:var(--soft); margin-left:auto; }
   .viewswitch { display:flex; gap:8px; align-items:center; margin-bottom:16px; }
+  .keepfresh { font-size:14px; display:flex; align-items:center; gap:6px; cursor:pointer; white-space:nowrap; }
+  .livedot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--good);
+             margin-right:6px; vertical-align:middle; animation:pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
   button.action.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   button.action.on:hover { color:#fff; }
   .ok { color:var(--good); }
@@ -102,6 +106,7 @@
       <input id="syncUrl" placeholder="https://script.google.com/macros/s/…/exec" style="flex:1;min-width:280px">
       <button class="action" id="saveSync">Save</button>
       <button class="action" id="loadClass">Load whole class</button>
+      <label class="keepfresh"><input type="checkbox" id="autoRefresh"> Keep updating</label>
       <span class="sub" id="syncMsg"></span>
     </div>
   </div>
@@ -308,25 +313,88 @@
     msg.className = "sub ok";
   });
 
-  $("loadClass").addEventListener("click", function () {
+  var POLL_MS = 30000;
+  var AUTO_KEY = "phonics.sync.auto";
+  var pollTimer = null, inFlight = false;
+
+  function clockTime() {
+    var d = new Date(), p = function (n) { return (n<10?"0":"") + n; };
+    return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+  }
+
+  /* silent = a background refresh: don't show "Loading…", and don't shout
+     about a failed poll. A dropped request just means we try again in 30s,
+     and the numbers already on screen stay put. */
+  function fetchClass(silent) {
     var url = ($("syncUrl").value.trim() || localStorage.getItem(SYNC_KEY) || "");
     var msg = $("syncMsg");
-    if (!url) { msg.textContent = "Paste your Sheet address first."; msg.className = "sub warn"; return; }
-    msg.textContent = "Loading…"; msg.className = "sub";
+    if (!url) {
+      if (!silent) { msg.textContent = "Paste your Sheet address first."; msg.className = "sub warn"; }
+      return;
+    }
+    if (inFlight) return;
+    inFlight = true;
+    if (!silent) { msg.textContent = "Loading…"; msg.className = "sub"; }
+
     jsonp(url, function (res) {
+      inFlight = false;
       if (!res || !res.ok) {
-        msg.textContent = "Couldn't load: " + ((res && res.error) || "no answer") +
-                          ". Check the address, and that the Web App is shared with anyone.";
-        msg.className = "sub warn";
+        if (silent) {
+          msg.innerHTML = "<span class='livedot'></span>Couldn't reach the Sheet at " + clockTime() + " — still trying.";
+          msg.className = "sub warn";
+        } else {
+          msg.textContent = "Couldn't load: " + ((res && res.error) || "no answer") +
+                            ". Check the address, and that the Web App is shared with anyone.";
+          msg.className = "sub warn";
+        }
         return;
       }
+
       classData = groupRounds(res.rounds || []);
       var n = Object.keys(classData.students).length;
-      msg.textContent = "Loaded " + (res.rounds || []).length + " rounds from " + n + " student" + (n===1?"":"s") + ".";
-      msg.className = "sub ok";
+      var total = (res.rounds || []).length;
       view = "class";
+
+      /* Re-rendering resets the page position, which is maddening if you're
+         reading a student's list when a refresh lands. Put it back. */
+      var y = window.pageYOffset;
       render();
+      window.scrollTo(0, y);
+
+      msg.innerHTML = (pollTimer ? "<span class='livedot'></span>Updated " + clockTime() + " · " : "Loaded ") +
+                      total + " round" + (total===1?"":"s") + " from " + n + " student" + (n===1?"":"s") + ".";
+      msg.className = "sub ok";
     });
+  }
+
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(function () {
+      if (document.hidden) return;   // no point polling a tab nobody's looking at
+      fetchClass(true);
+    }, POLL_MS);
+    fetchClass(true);
+  }
+  function stopPolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  $("loadClass").addEventListener("click", function () { fetchClass(false); });
+
+  $("autoRefresh").addEventListener("change", function () {
+    localStorage.setItem(AUTO_KEY, this.checked ? "1" : "");
+    if (this.checked) startPolling();
+    else {
+      stopPolling();
+      var msg = $("syncMsg");
+      msg.innerHTML = msg.textContent.replace(/^Updated/, "Last updated");
+    }
+  });
+
+  /* Catch up immediately when you come back to the tab, rather than waiting
+     out the rest of the interval. */
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && pollTimer) fetchClass(true);
   });
 
   $("viewLocal").addEventListener("click", function () { view = "local"; render(); });
@@ -439,6 +507,14 @@
   });
 
   $("syncUrl").value = localStorage.getItem(SYNC_KEY) || "";
+
+  /* If it was left on last time, start straight away — during a lesson you
+     want this page to be live the moment it opens. */
+  if (localStorage.getItem(AUTO_KEY) && $("syncUrl").value) {
+    $("autoRefresh").checked = true;
+    startPolling();
+  }
+
   render();
 })();
 </script>
