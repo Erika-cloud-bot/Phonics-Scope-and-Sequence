@@ -56,11 +56,27 @@ A child types their name, picks a world, picks a week, then chooses an activity.
 | Activity | What the child does | Offered when |
 |---|---|---|
 | **Read It** | Word appears large; they read it aloud and mark it *read* or *tricky* | Any week with words |
+| **Hear It** | The word is spoken but never shown; they pick it from three spellings | The browser has a voice |
 | **Picture Match** | A picture appears; they choose the word that matches | 4+ words that week have pictures |
+| **Spell It** | The word is spoken and pictured; they build it from scrambled letter tiles | A voice or a picture can tell them the word |
 | **Sort It** | They choose which pattern group a word belongs to | The week has 2+ patterns |
 | **Missing Piece** | The pattern is blanked (`rem__n`); they choose the letters | The pattern is a findable letter chunk |
+| **Odd One Out** | Four words, three sharing the week's pattern; they find the intruder | The week's pattern is a findable letter chunk |
+| **Real or Not** | A real word, or an invented one built from it; they judge which | 4+ words can be safely altered |
 
 Ten questions a round, then a score with stars. **Keep going →** rotates to a different activity on the same week, so an open-ended session doesn't become the same thing ten times over.
+
+**Read It and Hear It are opposites, and both are needed.** Read It goes print → sound, but the app can't hear the child, so it's self-marked and can't be scored honestly. Hear It goes sound → print, which the app *can* mark. Between them you get both directions and one real score.
+
+Across the 28 weeks that have words, 15 offer all eight activities, and the leanest — Week 33, irregular spellings — offers four. Before these were added it offered one.
+
+### About Real or Not
+
+This one invents its nonsense words rather than storing them: it swaps the consonants a word starts with and keeps the rest, so `brain` becomes `blain` and the week's pattern survives intact. Two-letter beginnings are tried first, because single letters are likelier to produce something that *sounds* real (`lamp` → `kamp` isn't an English spelling, but a child who says "that's camp" isn't wrong).
+
+Before showing an invented word it's checked against the whole word bank, every word with a picture, and a list of common short words held in `COMMON` near the top of `student.html`. If nothing safe can be built, the real word is simply shown instead — a failed check costs variety, never correctness.
+
+**No such list is a dictionary.** If a student is ever shown a real word marked "not a word", add it to `COMMON` and it will never appear again. The likeliest gap is a homophone — an invented spelling that happens to sound like a real word.
 
 ### Word levels
 
