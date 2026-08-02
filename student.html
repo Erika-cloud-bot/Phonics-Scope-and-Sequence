@@ -770,10 +770,26 @@
     if (state.activity === "real")    return askReal(it);
     return askGap(it);
   }
+  /* How long the feedback stays up before the next question.
+
+     A flat pause was too quick for the activities that answer in a sentence:
+     "It's splendid — the others are ur words" was gone before a Grade 3
+     reader had finished it, while "Yes — cat!" needs no extra time at all.
+     So the pause is the old one plus reading time for anything past a short
+     confirmation — the first 16 characters are free, then 70ms a character,
+     which is an unhurried Grade 3 reading speed.
+
+     A wrong answer starts higher, because that's when the explanation is the
+     whole point. Capped so a long message can't strand a child.
+
+     Every ask* function sets the feedback before calling this, which is why
+     the message can simply be read back off the screen here. */
   function advance(ok, item) {
     if (ok) state.right++; else if (item) state.tricky.push(item.word);
     markDot(state.at, ok); state.at++;
-    setTimeout(nextQ, ok ? 700 : 1250);
+    var msg = $("feedback").textContent || "";
+    var hold = (ok ? 700 : 1250) + Math.max(0, msg.length - 16) * 70;
+    setTimeout(nextQ, Math.min(hold, 6000));
   }
   function wire() {
     document.querySelectorAll("[data-say]").forEach(function (b) {
