@@ -89,6 +89,26 @@
   .choice.right { background: var(--good); border-color: var(--good); color: #fff; }
   .choice.wrong { background: var(--bad);  border-color: var(--bad);  color: #fff; }
   .choice .small { display: block; font-size: 13px; font-weight: 400; opacity: .85; }
+
+  /* Hear It — no word on screen, so the speaker is the whole stage. */
+  .listen-big { font-size: 72px; line-height: 1; }
+
+  /* Spell It — letter tiles, and the word being built above them. */
+  .built {
+    font-size: clamp(34px,9vw,58px); font-weight: 700; letter-spacing: 5px;
+    min-height: 1.25em; margin-top: 10px;
+  }
+  .built .blank { color: var(--line); }
+  .built.right { color: var(--good); } .built.wrong { color: var(--bad); }
+  .tiles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .tile {
+    font: inherit; font-size: 26px; font-weight: 700; width: 56px; height: 60px;
+    border-radius: 12px; border: 3px solid var(--line);
+    background: var(--card); color: var(--ink); cursor: pointer;
+  }
+  .tile:hover:not(:disabled) { border-color: var(--deep); }
+  .tile:disabled { opacity: .22; cursor: default; }
+
   .feedback { text-align: center; font-size: 21px; font-weight: 700; min-height: 32px; margin-top: 16px; }
   .feedback.good { color: var(--good); } .feedback.bad { color: var(--bad); }
 
@@ -178,7 +198,12 @@
     "plural-ies":"-ies","plural-irregular":"irregular","open-syllable":"open",
     "syllable-division":"split it","short-vowels":"short vowel",
     "homophones-1":"their / there","homophones-2":"to / too / two","compound":"compound",
-    "schwa":"schwa","contractions":"contraction","etymology":"word origin","irregular":"tricky" };
+    "schwa":"schwa","contractions":"contraction","etymology":"word origin","irregular":"tricky",
+    /* Prefixes and suffixes need their hyphen, or Sort It offers a column
+       headed "less" and Odd One Out says "the others are less words". */
+    "un":"un-","re":"re-","dis":"dis-","pre":"pre-","mis":"mis-","non":"non-","over":"over-",
+    "ful":"-ful","less":"-less","ly":"-ly","ness":"-ness","tion":"-tion","sion":"-sion",
+    "able":"-able","ment":"-ment","ous":"-ous" };
 
   var NO_GRAPHEME = ["short-vowels","open-syllable","syllable-division","homophones-1",
     "homophones-2","compound","plural-s","plural-es","plural-ies","plural-irregular",
@@ -206,7 +231,7 @@
      It is never shown on screen — a child doesn't need to be told which
      pile they're in. It only decides which words come up. */
   var state = { who:null, level:"mixed", world:1, week:null, activity:null,
-                queue:[], at:0, right:0, tricky:[], rotate:0 };
+                queue:[], at:0, right:0, tricky:[], rotate:0, foils:null };
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -344,6 +369,147 @@
   function weekByNum(n) { return window.SEQUENCE.filter(function (w) { return w.week === n; })[0]; }
   function picOf(w) { return window.MEANINGS[w.toLowerCase()] || null; }
 
+  /* Every word in the bank, flattened once. Used to pull odd-one-out foils
+     from patterns the current week isn't studying. */
+  var ALL_WORDS = (function () {
+    var out = [];
+    Object.keys(window.WORDBANK).forEach(function (k) {
+      ["easy","core","challenge"].forEach(function (t) {
+        (window.WORDBANK[k][t] || []).forEach(function (w) { out.push({ word:w, key:k }); });
+      });
+    });
+    return out;
+  })();
+
+  /* ---- guarding Real or Not ----
+     That activity invents a nonsense word by swapping the first consonants
+     (brain → blain). The danger is inventing a REAL word by accident and then
+     telling a child it isn't one. Three defences, checked in order:
+       1. the whole word bank (2,600+ words)
+       2. every word with a picture
+       3. COMMON below — frequent short words that share rimes with bank words
+          and so are the likely collisions, but that the bank has no reason to
+          contain (bat, fad, gull, hem...).
+     If no safe nonsense form can be found, the word is simply shown as real,
+     so a failed guard costs variety rather than correctness.
+
+     No list is a dictionary. If a student ever sees a real word marked "not a
+     word", add it to COMMON and it will never appear again. */
+  var COMMON = {};
+  ("a an and are as at be been but by can did do for from get got had has have he her him his how i " +
+   "if in is it its me my no not of on or our out said she so than that the their them then there " +
+   "these they this to too up us was we were what when where which who will with you your " +
+   "bat cat fat hat mat pat rat sat vat bad cad dad fad had lad mad pad sad tad bag gag lag nag rag sag tag wag " +
+   "ban can fan man pan ran tan van bar car far jar mar par tar bed fed led red wed bet get jet let met net pet set vet wet " +
+   "beg keg leg peg hem gem hen den fen ken pen ten bib fib jib nib rib bid did hid kid lid rid " +
+   "big dig fig gig jig pig rig wig bin din fin kin pin sin tin win bit fit hit kit lit nit pit sit wit " +
+   "bob cob fob gob job lob mob rob sob bog cog dog fog hog jog log bop cop hop mop pop sop top " +
+   "bud cud dud mud bug dug hug jug lug mug pug rug tug bum gum hum rum sum bun fun gun nun pun run sun " +
+   "but cut gut hut jut nut rut cap gap lap map nap rap sap tap yap " +
+   "bail fail hail jail mail nail pail rail sail tail wail bait gait wait " +
+   "bay day gay hay jay lay may nay pay ray say way " +
+   "beak leak peak teak weak beam ream seam team bean dean lean mean wean " +
+   "boat coat goat moat oat bone cone hone lone tone zone " +
+   "bore core fore gore more pore sore tore wore born corn horn morn torn worn " +
+   "bull full gull hull dull lull mull null bump dump hump jump lump pump rump sump " +
+   "cane bane lane mane pane sane vane wane dale gale hale kale male pale sale tale " +
+   "dime lime mime time chime crime dine fine line mine nine pine vine wine " +
+   "dole hole mole pole role sole dote note rote tote vote dose hose nose pose rose " +
+   "cove dove love move rove wove dove gave cave pave rave save wave " +
+   "deed feed heed need reed seed weed feel heel keel peel reel " +
+   "bee fee gee lee see tee wee flee free glee three tree " +
+   "boil coil foil soil toil coin join loin " +
+   "gain lain main pain rain vain grain plain " +
+   "gaze haze maze daze faze laze " +
+   "bell cell dell fell hell jell sell tell well yell " +
+   "bill dill fill gill hill kill mill pill rill sill till will " +
+   "boll doll loll poll roll toll bolt colt dolt jolt volt " +
+   "dock hock jock lock mock pock rock sock tock buck duck luck muck puck suck tuck " +
+   "back hack jack lack pack rack sack tack beck deck heck neck peck " +
+   "dick hick kick lick nick pick sick tick wick " +
+   "band hand land sand bend fend lend mend rend send tend vend " +
+   "bind find hind kind mind rind wind bond fond pond bound found hound mound pound round sound wound " +
+   "bank dank hank lank rank sank tank yank link mink pink rink sink wink " +
+   "bunk dunk funk gunk hunk junk punk sunk best jest lest nest pest rest test vest west zest " +
+   "bust dust gust just lust must rust fast last mast past vast cast " +
+   "fist gist list mist wist bash cash dash gash hash lash mash rash sash " +
+   "dish fish wish gush hush lush mush rush bath math path with " +
+   "cane dune june tune rune lane vane " +
+   "gale hale kale tale wale bale " +
+   "goad load road toad woad " +
+   "camp damp lamp ramp vamp champ clamp cramp stamp tramp limp wimp blimp crimp primp shrimp " +
+   "bunch hunch lunch munch punch brunch crunch batch catch hatch latch match patch snatch " +
+   "bench clench drench trench wrench blush brush crush flush plush slush blend brand gland " +
+   "grand stand strand blink brink clink drink shrink slink stink think blast blest crest " +
+   "chest crust trust twist wrist swift drift shift thrift cleft craft draft graft shaft " +
+   "clash crash flash slash smash stash trash bloat float gloat groan clean cream dream " +
+   "gleam steam stream scream bleak creak freak sneak speak break brine grime prime slime " +
+   "shine spine swine twine chore score shore snore store swore spore chase phase erase " +
+   "blame flame frame shame brace grace place space trace slice spice twice price " +
+   "block clock flock frock shock smock stock crock brick click flick slick stick trick " +
+   "cluck pluck stuck struck truck bloom broom groom gloom stoop swoop scoop droop " +
+   "cheer sheer steer queer sneer clear smear spear swear "
+  ).split(/\s+/).forEach(function (w) { if (w) COMMON[w] = 1; });
+
+  var BANK_SET = (function () {
+    var s = {};
+    ALL_WORDS.forEach(function (i) { s[i.word.toLowerCase()] = 1; });
+    Object.keys(window.MEANINGS).forEach(function (w) { s[w.toLowerCase()] = 1; });
+    return s;
+  })();
+
+  function looksReal(s) {
+    s = s.toLowerCase();
+    return !!(BANK_SET[s] || COMMON[s]);
+  }
+
+  /* Legal English beginnings, so the invented word stays pronounceable —
+     a nonsense word a child can't sound out teaches nothing.
+
+     Clusters are tried first and single letters only as a fallback. A single
+     letter is far likelier to land on a word that merely LOOKS invented:
+     lamp → kamp isn't an English spelling, but it sounds exactly like camp,
+     and a child calling that real would be right in every way that matters.
+     Two-letter beginnings almost never alias onto a real word that way. */
+  var CLUSTER_ONSETS = ["bl","br","cl","cr","dr","fl","fr","gl","gr","pl","pr",
+                        "sl","sm","sn","sp","st","sw","tr","tw","thr","spl","str"];
+  var SINGLE_ONSETS  = ["b","d","f","h","l","m","n","p","r","t","v","w"];
+
+  /* Spellings that sound the same as another spelling. Checked so a candidate
+     is rejected when any plain respelling of it is a real word. */
+  var SOUND_ALIKE = { c:["s","k"], k:["c"], s:["c"], z:["s"], j:["g"], g:["j"], q:["k"] };
+
+  function soundsReal(cand) {
+    if (looksReal(cand)) return true;
+    var alts = SOUND_ALIKE[cand.charAt(0)];
+    if (alts) {
+      for (var i = 0; i < alts.length; i++) {
+        if (looksReal(alts[i] + cand.slice(1))) return true;
+      }
+    }
+    return false;
+  }
+
+  /* Swap the opening consonants for different ones, keeping the rest — and so
+     keeping the week's pattern — intact. Returns null rather than risk a real
+     word, and null rather than damage the pattern being taught. */
+  function makeFake(w, g) {
+    var on = /^[^aeiouy]*/.exec(w)[0];
+    if (!on || on.length > 3) return null;
+    if (g && on.indexOf(g) !== -1) return null;   // the pattern lives in the onset — leave it alone
+    var rest = w.slice(on.length);
+    var tries = shuffled(CLUSTER_ONSETS).concat(shuffled(SINGLE_ONSETS));
+    for (var i = 0; i < tries.length; i++) {
+      if (tries[i] === on) continue;
+      var cand = tries[i] + rest;
+      if (!soundsReal(cand)) return cand;
+    }
+    return null;
+  }
+
+  function spellable(w) { return /^[a-zA-Z]+$/.test(w) && w.length >= 3 && w.length <= 9; }
+  function fakeable(w)  { return /^[a-z]+$/.test(w) && w.length >= 3; }
+
   /* Which tiers a level draws from, best match first. A level takes its own
      tier, and only borrows from the next one out if there aren't enough words
      to fill a round — some patterns have just three or four words in a tier. */
@@ -386,13 +552,30 @@
     });
     return out;
   }
+  /* Every word in this item's pattern that actually shows the pattern —
+     the pool Odd One Out draws its three "fits" from. */
+  function oddFits(it) {
+    var g = graphemeFor(it.key), e = window.WORDBANK[it.key];
+    if (!g || !e) return [];
+    return ["easy","core","challenge"]
+      .reduce(function (a,t) { return a.concat(e[t]||[]); }, [])
+      .filter(function (w) { return w.toLowerCase().indexOf(g) !== -1; });
+  }
+
   function available(week) {
     var pool = poolFor(week);
     var cols = week.patterns.filter(function (k) { return (window.WORDBANK[k]||{}).label; });
     var gap  = pool.filter(function (i) { var g = graphemeFor(i.key); return g && i.word.toLowerCase().indexOf(g) !== -1; });
     var pics = pool.filter(function (i) { return picOf(i.word); });
+    /* Spell It needs the child to know which word to build: the voice tells
+       them, or failing that a picture does. With neither, it stays hidden. */
+    var spel = pool.filter(function (i) { return spellable(i.word) && (canSpeak || picOf(i.word)); });
+    var odd  = pool.filter(function (i) { return oddFits(i).length >= 3; });
+    var real = pool.filter(function (i) { return fakeable(i.word); });
     return { read: pool.length >= 4, sort: cols.length >= 2 && pool.length >= 6,
-             gap: gap.length >= 4, picture: pics.length >= 4 };
+             gap: gap.length >= 4, picture: pics.length >= 4,
+             listen: canSpeak && pool.length >= 4,
+             spell: spel.length >= 4, odd: odd.length >= 4, real: real.length >= 4 };
   }
 
   var canSpeak = "speechSynthesis" in window;
@@ -518,10 +701,14 @@
     $("weekFocus").textContent = "Week " + week.week + " — " + week.focus;
 
     var acts = $("acts"); acts.innerHTML = "";
-    [ { id:"read",    emoji:"📖", name:"Read It",       why:"Read each word out loud.",      ok:can.read },
-      { id:"picture", emoji:"🖼️", name:"Picture Match", why:"Match the picture to the word.", ok:can.picture },
-      { id:"sort",    emoji:"🗂️", name:"Sort It",       why:"Put the word in the right group.", ok:can.sort },
-      { id:"gap",     emoji:"🧩", name:"Missing Piece", why:"Choose the letters that fit.",  ok:can.gap }
+    [ { id:"read",    emoji:"📖", name:"Read It",        why:"Read each word out loud.",         ok:can.read },
+      { id:"listen",  emoji:"👂", name:"Hear It",        why:"Listen, then pick the word.",      ok:can.listen },
+      { id:"picture", emoji:"🖼️", name:"Picture Match",  why:"Match the picture to the word.",   ok:can.picture },
+      { id:"spell",   emoji:"🔤", name:"Spell It",       why:"Build the word from letters.",     ok:can.spell },
+      { id:"sort",    emoji:"🗂️", name:"Sort It",        why:"Put the word in the right group.", ok:can.sort },
+      { id:"gap",     emoji:"🧩", name:"Missing Piece",  why:"Choose the letters that fit.",     ok:can.gap },
+      { id:"odd",     emoji:"🔍", name:"Odd One Out",    why:"Find the word that doesn't fit.",  ok:can.odd },
+      { id:"real",    emoji:"🤔", name:"Real or Not",    why:"Is it a real word?",               ok:can.real }
     ].forEach(function (a) {
       var b = document.createElement("button");
       b.className = "btn act"; b.disabled = !a.ok;
@@ -540,9 +727,18 @@
 
     if (activity === "gap")     pool = pool.filter(function (i) { var g = graphemeFor(i.key); return g && i.word.toLowerCase().indexOf(g) !== -1; });
     if (activity === "picture") pool = pool.filter(function (i) { return picOf(i.word); });
+    if (activity === "spell")   pool = pool.filter(function (i) { return spellable(i.word) && (canSpeak || picOf(i.word)); });
+    if (activity === "odd")     pool = pool.filter(function (i) { return oddFits(i).length >= 3; });
+    if (activity === "real")    pool = pool.filter(function (i) { return fakeable(i.word); });
     if (activity === "sort") {
       state.columns = week.patterns.filter(function (k) { return (window.WORDBANK[k]||{}).label; });
       pool = pool.filter(function (i) { return state.columns.indexOf(i.key) !== -1; });
+    }
+    if (activity === "odd") {
+      /* Foils come from patterns this week isn't studying, so the odd one out
+         is genuinely a different pattern rather than a near-miss. */
+      var inWeek = week.patterns.concat(week.morphology);
+      state.foils = ALL_WORDS.filter(function (x) { return inWeek.indexOf(x.key) === -1; });
     }
     /* poolFor has already shuffled within each tier and put the reader's own
        level first. Reshuffling here would undo that, so just take the front. */
@@ -566,8 +762,12 @@
     if (state.at >= state.queue.length) return finish();
     var it = state.queue[state.at];
     if (state.activity === "read")    return askRead(it);
+    if (state.activity === "listen")  return askListen(it);
     if (state.activity === "picture") return askPicture(it);
+    if (state.activity === "spell")   return askSpell(it);
     if (state.activity === "sort")    return askSort(it);
+    if (state.activity === "odd")     return askOdd(it);
+    if (state.activity === "real")    return askReal(it);
     return askGap(it);
   }
   function advance(ok, item) {
@@ -675,6 +875,159 @@
     });
   }
 
+  /* Hear It — the only activity that starts from sound rather than print.
+     Nothing is shown until they answer, so it tests the sound-to-spelling
+     direction that Read It can't (the app can't hear the child). */
+  function askListen(it) {
+    /* Distractors from the same pattern where possible — shirt / skirt / first
+       is a listening test; shirt / painless / sleepless is a giveaway. */
+    var pool = state.queue.filter(function (x) { return x.word !== it.word; });
+    var others = shuffled(pool.filter(function (x) { return x.key === it.key; }))
+                   .concat(shuffled(pool.filter(function (x) { return x.key !== it.key; })))
+                   .slice(0, 2).map(function (x) { return x.word; });
+    var opts = shuffled(others.concat([it.word]));
+    $("stage").innerHTML = "<div class='stage'><div class='listen-big'>👂</div>" +
+      "<p class='sub'>Which word did you hear?</p>" + sayBtn(it.word) + "</div>" +
+      "<div class='choices'>" + opts.map(function (o) {
+        return "<button class='btn choice' data-heard='"+o+"'>"+o+"</button>"; }).join("") + "</div>";
+    wire();
+    say(it.word);   // and pressing Hear it repeats it slower, as everywhere else
+    document.querySelectorAll("[data-heard]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = b.getAttribute("data-heard") === it.word;
+        b.className = "btn choice " + (ok ? "right" : "wrong");
+        lockAndMark("[data-heard]", ok, it.word, "data-heard");
+        $("feedback").textContent = ok ? "Yes — " + it.word + "!" : "That one was " + it.word + ".";
+        $("feedback").className = "feedback " + (ok ? "good" : "bad");
+        advance(ok, it);
+      });
+    });
+  }
+
+  /* Spell It — the reverse of Missing Piece: nothing is given except the
+     sound and the picture, and every letter has to be placed. */
+  function askSpell(it) {
+    var w = it.word, p = picOf(w), letters = w.split("");
+    var order = shuffled(letters.map(function (_, i) { return i; }));
+    // A scramble that comes out in the right order hands them the answer.
+    if (w.length > 1 && order.every(function (v, i) { return letters[v] === letters[i]; })) {
+      order = order.slice().reverse();
+    }
+    var picked = [];
+
+    $("stage").innerHTML = "<div class='stage'>" + (p ? "<div class='pic'>"+p+"</div>" : "") +
+      "<p class='sub'>Listen, then build the word.</p>" + sayBtn(w) +
+      "<div class='built' id='built'></div></div>" +
+      "<div class='tiles' id='tiles'></div>" +
+      "<div style='text-align:center;margin-top:14px'><button class='btn' id='undo'>← Undo</button></div>";
+    wire();
+
+    var tiles = $("tiles");
+    order.forEach(function (srcIdx, slot) {
+      var b = document.createElement("button");
+      b.className = "tile"; b.textContent = letters[srcIdx];
+      b.addEventListener("click", function () {
+        if (b.disabled) return;
+        picked.push({ slot: slot, ch: letters[srcIdx] });
+        b.disabled = true;
+        draw();
+        if (picked.length === w.length) check();
+      });
+      tiles.appendChild(b);
+    });
+
+    $("undo").addEventListener("click", function () {
+      var last = picked.pop();
+      if (last) tiles.children[last.slot].disabled = false;
+      draw();
+    });
+
+    function draw() {
+      var got = picked.map(function (x) { return x.ch; }).join("");
+      var blanks = new Array(w.length - picked.length + 1).join("_");
+      $("built").innerHTML = got + "<span class='blank'>" + blanks + "</span>";
+    }
+    function check() {
+      var got = picked.map(function (x) { return x.ch; }).join("");
+      var ok = got === w;
+      $("built").className = "built " + (ok ? "right" : "wrong");
+      if (!ok) $("built").innerHTML = w;
+      Array.prototype.forEach.call(tiles.children, function (t) { t.disabled = true; });
+      $("undo").disabled = true;
+      $("feedback").textContent = ok ? "That's it — " + w + "!" : "Not quite — it's " + w + ".";
+      $("feedback").className = "feedback " + (ok ? "good" : "bad");
+      say(w);
+      advance(ok, it);
+    }
+    draw();
+    say(w);
+  }
+
+  /* Odd One Out — three words showing this week's pattern, one from a pattern
+     the week isn't studying. Wrong answers are recorded against the week word
+     the question was built from, so the teacher's list stays useful. */
+  function askOdd(it) {
+    var g = graphemeFor(it.key);
+    var fits = [it.word].concat(
+      shuffled(oddFits(it).filter(function (w) { return w !== it.word; })).slice(0, 2));
+    var candidates = (state.foils || ALL_WORDS).filter(function (x) {
+      return x.word.toLowerCase().indexOf(g) === -1 && fits.indexOf(x.word) === -1;
+    });
+    var foil = candidates[Math.floor(Math.random() * candidates.length)];
+    // Should never happen given the gate, but degrade to a readable question
+    // rather than showing a broken one.
+    if (fits.length < 3 || !foil) return askRead(it);
+
+    var opts = shuffled(fits.concat([foil.word]));
+    $("stage").innerHTML = "<div class='stage'><p class='sub'>Three of these go together.<br>" +
+      "Which one does <strong>not</strong> fit?</p></div>" +
+      "<div class='choices'>" + opts.map(function (o) {
+        return "<button class='btn choice' data-odd='"+o+"'>"+o+"</button>"; }).join("") + "</div>";
+    document.querySelectorAll("[data-odd]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = b.getAttribute("data-odd") === foil.word;
+        b.className = "btn choice " + (ok ? "right" : "wrong");
+        lockAndMark("[data-odd]", ok, foil.word, "data-odd");
+        $("feedback").textContent = ok
+          ? "Yes — the others are " + shortLabel(it.key) + " words."
+          : "It's " + foil.word + " — the others are " + shortLabel(it.key) + " words.";
+        $("feedback").className = "feedback " + (ok ? "good" : "bad");
+        say(foil.word);
+        advance(ok, it);
+      });
+    });
+  }
+
+  /* Real or Not — the word, or a made-up one built by swapping the opening
+     consonants and keeping the week's pattern (brain → blain). makeFake
+     refuses to return anything that might be a real word; when it refuses,
+     the real word is shown instead. The voice only ever says the REAL word. */
+  function askReal(it) {
+    var w = it.word;
+    var fake = Math.random() < 0.5 ? makeFake(w, graphemeFor(it.key)) : null;
+    var shown = fake || w, isReal = !fake;
+
+    $("stage").innerHTML = "<div class='stage'><p class='the-word'>" + shown + "</p>" +
+      "<p class='sub'>Is this a real word?</p></div>" +
+      "<div class='choices'>" +
+      "<button class='btn choice' data-real='yes'>Real word</button>" +
+      "<button class='btn choice' data-real='no'>Not a word</button></div>";
+    document.querySelectorAll("[data-real]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = (b.getAttribute("data-real") === "yes") === isReal;
+        b.className = "btn choice " + (ok ? "right" : "wrong");
+        lockAndMark("[data-real]", ok, isReal ? "yes" : "no", "data-real");
+        $("feedback").textContent = isReal
+          ? (ok ? "Yes — " + w + " is a real word." : "It is real — " + w + ".")
+          : (ok ? "Right, that's not a word. The real one is " + w + "."
+                : "Not a word — the real one is " + w + ".");
+        $("feedback").className = "feedback " + (ok ? "good" : "bad");
+        say(w);
+        advance(ok, it);
+      });
+    });
+  }
+
   // ---------- done ----------
   function finish() {
     var total = state.queue.length, pct = total ? state.right/total : 0;
@@ -706,7 +1059,10 @@
      session doesn't become the same activity ten times over. */
   function keepGoing() {
     var week = weekByNum(state.week), can = available(week);
-    var order = ["read","picture","sort","gap"].filter(function (a) { return can[a]; });
+    /* Interleaved on purpose: reading, listening, sorting, building. Two
+       activities of the same kind shouldn't land back to back. */
+    var order = ["read","listen","sort","spell","picture","odd","gap","real"]
+                  .filter(function (a) { return can[a]; });
     state.rotate = (state.rotate + 1) % order.length;
     start(order[state.rotate]);
   }
