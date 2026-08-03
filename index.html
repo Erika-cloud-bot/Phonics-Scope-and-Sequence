@@ -96,6 +96,16 @@
 
   .empty { color: var(--ink-soft); font-style: italic; }
 
+  /* ---- grammar ---- */
+  .gq { font-size: 13px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.07em; color: var(--ink-soft);
+        padding-bottom: 5px; border-bottom: 1px solid var(--line); margin: 16px 0 9px; }
+  .gq:first-of-type { margin-top: 0; }
+  .glist { list-style: none; margin: 0; padding: 0; }
+  .glist li { padding: 3px 0; font-size: 16px; }
+  .gans { font-weight: 700; }
+  .gwhy { color: var(--ink-soft); font-size: 14px; }
+
   /* ---- print: just the words, big and clean ---- */
   @media print {
     body { background: #fff; }
@@ -125,7 +135,7 @@
     <label><input type="checkbox" class="tier-toggle" value="easy" checked> Easy</label>
     <label><input type="checkbox" class="tier-toggle" value="core" checked> Core</label>
     <label><input type="checkbox" class="tier-toggle" value="challenge" checked> Challenge</label>
-    <label>Max per tier
+    <label>Max per list
       <select id="limit">
         <option value="0">all</option>
         <option value="5">5</option>
@@ -145,6 +155,7 @@
 
 <script src="data/sequence.js"></script>
 <script src="data/wordbank.js"></script>
+<script src="data/grammar.js"></script>
 <script>
 (function () {
   "use strict";
@@ -272,6 +283,71 @@
     return g;
   }
 
+  /* ---- the week's grammar, as a marked-up answer key ----
+     Only the week's own questions. A review week names the weeks it revisits
+     instead of reprinting them, so week 34 doesn't try to print the year. */
+  function grammarEl(week) {
+    var wk = (window.GRAMMAR || {})[week.week];
+    if (!wk) return null;
+
+    var g = document.createElement("div");
+    g.className = "group"; g.id = "grammarGroup";
+    g.innerHTML = "<h3>Grammar practice — " + week.grammar + "</h3>";
+
+    var limit = parseInt(document.getElementById("limit").value, 10);
+    var some  = function (list) {
+      var a = shuffleOn ? shuffled(list) : list.slice();
+      return limit > 0 ? a.slice(0, limit) : a;
+    };
+    var esc = function (s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    };
+    /* The answer sits in [brackets] in data/grammar.js. In print it's bold. */
+    var marked = function (s, asBlank) {
+      return esc(s).replace(/\[([^\[\]]+)\]/,
+        asBlank ? "<span class='gans'>____</span>" : "<span class='gans'>$1</span>");
+    };
+    var blocks = function (kind) {
+      var b = wk[kind];
+      return !b ? [] : (Array.isArray(b) ? b : [b]);
+    };
+    var why = function (w) { return w ? " <span class='gwhy'>— " + esc(w) + "</span>" : ""; };
+    var block = function (title, lines) {
+      if (!lines.length) return;
+      g.innerHTML += "<div class='gq'>" + esc(title) + "</div><ul class='glist'>" +
+                     lines.map(function (l) { return "<li>" + l + "</li>"; }).join("") + "</ul>";
+    };
+
+    blocks("find").forEach(function (b) {
+      block(b.q, some(b.items).map(function (s) { return marked(s); }));
+    });
+    blocks("pick").forEach(function (b) {
+      block(b.q, some(b.items).map(function (it) {
+        var answer = /\[([^\[\]]+)\]/.exec(it.s);
+        return marked(it.s, true) +
+               " <span class='gwhy'>(" + esc([(answer ? answer[1] : "")].concat(it.o).join(" / ")) + ")</span>" +
+               why(it.why);
+      }));
+    });
+    blocks("group").forEach(function (b) {
+      block(b.q, (b.groups || []).map(function (grp) {
+        return "<span class='gans'>" + esc(grp.label) + ":</span> " +
+               esc(some(grp.words).join(", "));
+      }));
+    });
+    blocks("fix").forEach(function (b) {
+      block(b.q, some(b.items).map(function (it) {
+        return "<span class='gans'>" + esc(it.ok) + "</span>" + why(it.why);
+      }));
+    });
+
+    if (wk.review && !g.querySelector(".glist")) {
+      g.innerHTML += "<p class='empty'>Revisits the grammar from weeks " +
+                     wk.review.join(", ") + ". Pick one of those above to print its questions.</p>";
+    }
+    return g;
+  }
+
   function render() {
     var week = window.SEQUENCE.find(function (w) { return w.week === selectedWeek; });
     output.innerHTML = "";
@@ -291,9 +367,11 @@
       p.textContent = "This is a review, routines, or assessment week — no new pattern, so no word list. " +
                       "Pick any numbered week above to pull its words for revision.";
       output.appendChild(p);
-      return;
     }
     keys.forEach(function (k) { output.appendChild(groupEl(k)); });
+
+    var g = grammarEl(week);
+    if (g) output.appendChild(g);
   }
 
   /* Plain text of what's on screen, for pasting into a doc. */
@@ -310,6 +388,10 @@
       });
       out.push("");
     });
+    /* Read the grammar back off the screen rather than rebuilding it, so what
+       you paste is exactly what you were looking at. */
+    var gel = document.getElementById("grammarGroup");
+    if (gel) out.push(gel.innerText.trim());
     return out.join("\n");
   }
 
