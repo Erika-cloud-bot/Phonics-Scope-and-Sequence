@@ -111,6 +111,37 @@
 
   .feedback { text-align: center; font-size: 21px; font-weight: 700; min-height: 32px; margin-top: 16px; }
   .feedback.good { color: var(--good); } .feedback.bad { color: var(--bad); }
+  /* The rule behind the answer. Quieter than the verdict above it, because the
+     verdict is glanced at and this is read. */
+  .feedback .why { display: block; font-weight: 400; font-size: 17px; color: var(--soft); margin-top: 6px; }
+
+  /* ---- grammar ---- */
+  .strand { font-size: 12px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .08em; color: var(--soft); margin: 20px 0 8px; }
+  .ask { font-size: 19px; color: var(--soft); margin: 0 0 14px; }
+  .sent { font-size: clamp(21px,4.6vw,29px); line-height: 1.9; margin: 0; }
+  /* Every word is tappable, so none of them may look more tappable than the
+     rest — a border that only appears on hover keeps the sentence a sentence. */
+  .tok {
+    font: inherit; background: none; color: inherit; cursor: pointer;
+    border: 2px solid transparent; border-radius: 9px; padding: 1px 5px; margin: 0 1px;
+  }
+  .tok:hover:not(:disabled) { border-color: var(--deep); }
+  .tok:disabled { cursor: default; }
+  .tok.right { background: var(--good); border-color: var(--good); color: #fff; }
+  .tok.wrong { background: var(--bad);  border-color: var(--bad);  color: #fff; }
+
+  .blankw { display: inline-block; min-width: 2.4em; text-align: center;
+            border-bottom: 5px solid var(--gold); }
+  /* Wide enough to be seen while it's empty, then closed up around the answer
+     so the finished sentence reads as a sentence — a comma sitting alone in a
+     2.4em box looks like a mistake. */
+  .blankw.filled { min-width: 0; border-bottom-color: transparent; font-weight: 700; }
+  .blankw.right { color: var(--good); } .blankw.wrong { color: var(--bad); }
+
+  /* Fix It offers whole sentences, so they stack instead of sitting in a row. */
+  .choices.stack { flex-direction: column; align-items: stretch; }
+  .choices.stack .choice { min-width: 0; font-size: 20px; text-align: left; }
 
   /* Only appears once an answer is in, so it can't be mistaken for a choice.
      Waiting does the same thing — this is for readers who are already done. */
@@ -152,7 +183,14 @@
 
   <div id="actWrap" class="hidden">
     <p class="sub" style="margin:22px 0 4px"><strong id="weekFocus"></strong></p>
-    <div class="acts" id="acts"></div>
+    <div id="wordWrap">
+      <p class="strand">Word study</p>
+      <div class="acts" id="acts"></div>
+    </div>
+    <div id="gramWrap">
+      <p class="strand" id="gramLabel">Grammar</p>
+      <div class="acts" id="gacts"></div>
+    </div>
   </div>
 
   <button class="btn block" id="switchUser" style="margin-top:26px">Not you? Switch reader</button>
@@ -187,6 +225,7 @@
 <script src="data/sequence.js"></script>
 <script src="data/wordbank.js"></script>
 <script src="data/meanings.js"></script>
+<script src="data/grammar.js"></script>
 <script>
 (function () {
   "use strict";
@@ -602,6 +641,97 @@
              spell: spel.length >= 4, odd: odd.length >= 4, real: real.length >= 4 };
   }
 
+  // ---------- grammar ----------
+  /* The other half of the scope and sequence. Where the word bank is keyed by
+     pattern, data/grammar.js is keyed by week, because a grammar focus belongs
+     to its week in a way a vowel team doesn't.
+
+     Four kinds of question, and the activity id is the kind with a g on the
+     front, so nothing here can collide with a word-study activity. */
+  var GRAM  = window.GRAMMAR || {};
+  var GACT  = { gfind:"find", gpick:"pick", ggroup:"group", gfix:"fix" };
+  var GKIND = ["find", "pick", "group", "fix"];
+
+  function escHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  /* The answer is the part in [brackets]. Anything without exactly one pair is
+     malformed, and returning null here means such a question is skipped rather
+     than shown to a child with no right answer in it. */
+  function splitAnswer(s) {
+    var m = /^([^\[\]]*)\[([^\[\]]+)\]([^\[\]]*)$/.exec(String(s));
+    return m ? { before: m[1], answer: m[2], after: m[3] } : null;
+  }
+
+  /* A week's blocks of one kind. A block may be written on its own or as a
+     list of them, so a week can ask two different questions of the same kind
+     — week 1 asks for the noun, then the verb, then the adjective. */
+  function blocksOf(weekNum, kind) {
+    var wk = GRAM[weekNum];
+    if (!wk || !wk[kind]) return [];
+    return Array.isArray(wk[kind]) ? wk[kind] : [wk[kind]];
+  }
+
+  /* Every question of one kind a week can ask, each carrying the wording of
+     the block it came from — which is what lets a review week mix prompts from
+     a dozen weeks without any question losing its own question.
+
+     Built once per week and kind and then kept: week 34 pulls in the whole
+     year, and the home screen asks about every week each time it draws. */
+  var GPOOL = {};
+  function grammarPool(weekNum, kind) {
+    var ck = weekNum + "|" + kind;
+    if (GPOOL[ck]) return GPOOL[ck];
+
+    var out = [], wk = GRAM[weekNum];
+    /* `only` narrows a review week to one kind of question — week 35 is
+       editing practice, so it takes the Fix It questions and nothing else. */
+    if (!wk || (wk.only && wk.only.indexOf(kind) === -1)) return (GPOOL[ck] = out);
+
+    /* A review week borrows from the weeks it names. Those weeks are read for
+       their own questions only, never for their review lists — a review of a
+       review would go round in circles. */
+    [weekNum].concat(wk.review || []).forEach(function (n) {
+      blocksOf(n, kind).forEach(function (blk) {
+        if (kind === "group") {
+          (blk.groups || []).forEach(function (g, gi) {
+            (g.words || []).forEach(function (w) {
+              out.push({ kind:kind, wk:n, q:blk.q, w:w, gi:gi, groups:blk.groups });
+            });
+          });
+          return;
+        }
+        (blk.items || []).forEach(function (it) {
+          if (kind === "fix") {
+            if (!it.ok || !it.bad || !it.bad.length) return;
+            out.push({ kind:kind, wk:n, q:blk.q, ok:it.ok, bad:it.bad, why:it.why || "" });
+            return;
+          }
+          var parts = splitAnswer(typeof it === "string" ? it : it.s);
+          if (!parts) return;                                  // no answer marked
+          if (kind === "pick" && (!it.o || !it.o.length)) return;  // nothing to choose between
+          out.push({ kind:kind, wk:n, q:blk.q, tag:blk.tag || "the answer",
+                     before:parts.before, answer:parts.answer, after:parts.after,
+                     o:(it.o || []), why:(it.why || "") });
+        });
+      });
+    });
+    return (GPOOL[ck] = out);
+  }
+
+  /* Four is the floor everywhere in this app: fewer than four questions and a
+     round is too short to mean anything, so the activity stays hidden. */
+  function grammarAvailable(week) {
+    var can = {};
+    GKIND.forEach(function (k) { can["g" + k] = grammarPool(week.week, k).length >= 4; });
+    return can;
+  }
+  function hasGrammar(week) {
+    var can = grammarAvailable(week);
+    return GKIND.some(function (k) { return can["g" + k]; });
+  }
+
   var canSpeak = "speechSynthesis" in window;
 
   /* Pick the best English voice available rather than taking the default,
@@ -709,7 +839,10 @@
     var list = $("weekList"); list.innerHTML = "";
     window.SEQUENCE.filter(function (w) { return w.term === WORLDS[state.world].term; })
       .forEach(function (w) {
-        var has = w.patterns.length || w.morphology.length;
+        /* Review and assessment weeks have no new pattern, but they do have a
+           grammar focus — so they're open now, where before they were greyed
+           out for the whole year. */
+        var has = w.patterns.length || w.morphology.length || hasGrammar(w);
         var b = document.createElement("button");
         b.className = "btn wk" + (w.week === state.week ? " on" : "");
         b.textContent = w.week;
@@ -721,25 +854,51 @@
 
     if (state.week === null) { $("actWrap").classList.add("hidden"); return; }
     $("actWrap").classList.remove("hidden");
-    var week = weekByNum(state.week), can = available(week);
+    var week = weekByNum(state.week), can = available(week), gcan = grammarAvailable(week);
     $("weekFocus").textContent = "Week " + week.week + " — " + week.focus;
 
-    var acts = $("acts"); acts.innerHTML = "";
-    [ { id:"read",    emoji:"📖", name:"Read It",        why:"Read each word out loud.",         ok:can.read },
-      { id:"listen",  emoji:"👂", name:"Hear It",        why:"Listen, then pick the word.",      ok:can.listen },
-      { id:"picture", emoji:"🖼️", name:"Picture Match",  why:"Match the picture to the word.",   ok:can.picture },
-      { id:"spell",   emoji:"🔤", name:"Spell It",       why:"Build the word from letters.",     ok:can.spell },
-      { id:"sort",    emoji:"🗂️", name:"Sort It",        why:"Put the word in the right group.", ok:can.sort },
-      { id:"gap",     emoji:"🧩", name:"Missing Piece",  why:"Choose the letters that fit.",     ok:can.gap },
-      { id:"odd",     emoji:"🔍", name:"Odd One Out",    why:"Find the word that doesn't fit.",  ok:can.odd },
-      { id:"real",    emoji:"🤔", name:"Real or Not",    why:"Is it a real word?",               ok:can.real }
-    ].forEach(function (a) {
+    /* Two strands, labelled, in the order the sequence pairs them: the week's
+       words first, then the week's grammar. A strand with nothing to offer is
+       hidden rather than shown full of dead buttons. */
+    fillActs($("acts"),
+      [ { id:"read",    emoji:"📖", name:"Read It",        why:"Read each word out loud.",         ok:can.read },
+        { id:"listen",  emoji:"👂", name:"Hear It",        why:"Listen, then pick the word.",      ok:can.listen },
+        { id:"picture", emoji:"🖼️", name:"Picture Match",  why:"Match the picture to the word.",   ok:can.picture },
+        { id:"spell",   emoji:"🔤", name:"Spell It",       why:"Build the word from letters.",     ok:can.spell },
+        { id:"sort",    emoji:"🗂️", name:"Sort It",        why:"Put the word in the right group.", ok:can.sort },
+        { id:"gap",     emoji:"🧩", name:"Missing Piece",  why:"Choose the letters that fit.",     ok:can.gap },
+        { id:"odd",     emoji:"🔍", name:"Odd One Out",    why:"Find the word that doesn't fit.",  ok:can.odd },
+        { id:"real",    emoji:"🤔", name:"Real or Not",    why:"Is it a real word?",               ok:can.real }
+      ]);
+
+    fillActs($("gacts"),
+      [ { id:"gfind",  emoji:"👉", name:"Find the Word",  why:"Tap the word in the sentence.",    ok:gcan.gfind },
+        { id:"gpick",  emoji:"✏️", name:"Which Word?",    why:"Choose the word that fits.",       ok:gcan.gpick },
+        { id:"ggroup", emoji:"🧺", name:"Which Kind?",    why:"Say which group it goes in.",      ok:gcan.ggroup },
+        { id:"gfix",   emoji:"✍️", name:"Fix It",         why:"Pick the sentence written right.", ok:gcan.gfix }
+      ]);
+
+    $("gramLabel").textContent = "Grammar — " + week.grammar;
+    /* A whole strand with nothing in it is hidden, heading and all. A review
+       week has no words, and hiding the empty Word study grid is kinder than
+       showing eight dead buttons above the grammar the week is actually for. */
+    $("wordWrap").classList.toggle("hidden", !anyOk(can));
+    $("gramWrap").classList.toggle("hidden", !anyOk(gcan));
+  }
+
+  function anyOk(flags) {
+    return Object.keys(flags).some(function (k) { return flags[k]; });
+  }
+
+  function fillActs(box, list) {
+    box.innerHTML = "";
+    list.forEach(function (a) {
       var b = document.createElement("button");
       b.className = "btn act"; b.disabled = !a.ok;
       b.innerHTML = "<span class='emoji'>"+a.emoji+"</span><span class='name'>"+a.name+"</span>" +
                     "<span class='why'>"+(a.ok ? a.why : "Not for this week.")+"</span>";
       b.addEventListener("click", function () { start(a.id); });
-      acts.appendChild(b);
+      box.appendChild(b);
     });
   }
 
@@ -747,6 +906,15 @@
   function start(activity) {
     var week = weekByNum(state.week);
     state.activity = activity; state.at = 0; state.right = 0; state.tricky = [];
+
+    /* Grammar rounds are drawn straight from the week's questions. There are no
+       word tiers to respect here — see the note in data/grammar.js. */
+    if (GACT[activity]) {
+      state.queue = shuffled(grammarPool(state.week, GACT[activity])).slice(0, ROUND);
+      show("s-play"); buildDots(); nextQ();
+      return;
+    }
+
     var pool = poolFor(week);
 
     if (activity === "gap")     pool = pool.filter(function (i) { var g = graphemeFor(i.key); return g && i.word.toLowerCase().indexOf(g) !== -1; });
@@ -786,6 +954,7 @@
     $("nextBtn").classList.add("hidden");
     if (state.at >= state.queue.length) return finish();
     var it = state.queue[state.at];
+    if (GACT[state.activity])         return askGrammar(it);
     if (state.activity === "read")    return askRead(it);
     if (state.activity === "listen")  return askListen(it);
     if (state.activity === "picture") return askPicture(it);
@@ -817,8 +986,19 @@
     nextQ();
   }
 
+  /* What a missed question leaves on the teacher's list. A word-study miss is
+     the word itself. A grammar miss is the name of the skill, not the sentence
+     — "Commas in a series ×4" is the small-group list; four whole sentences
+     quoted back is not. */
+  function missLabel(it) {
+    if (!it) return "";
+    if (it.word) return it.word;
+    return (GRAM[it.wk] || {}).name || "";
+  }
+
   function advance(ok, item) {
-    if (ok) state.right++; else if (item) state.tricky.push(item.word);
+    if (ok) state.right++;
+    else { var miss = missLabel(item); if (miss) state.tricky.push(miss); }
     markDot(state.at, ok); state.at++;
 
     var msg  = $("feedback").textContent || "";
@@ -1081,6 +1261,156 @@
     });
   }
 
+  /* ---------- grammar activities ----------
+     All four have the same shape: the question at the top, something to choose
+     between, then the rule underneath the answer. The rule is the point — a
+     child who guesses right and reads why still learns something. */
+
+  function askGrammar(it) {
+    if (it.kind === "find")  return askFind(it);
+    if (it.kind === "pick")  return askPick(it);
+    if (it.kind === "group") return askGroup(it);
+    return askFix(it);
+  }
+
+  /* Verdict on one line, rule on the next, both inside #feedback — so the
+     pause before the next question counts the rule too, which is the whole
+     reason the pause scales with length. */
+  function tell(ok, msg, why) {
+    var f = $("feedback");
+    f.className = "feedback " + (ok ? "good" : "bad");
+    f.innerHTML = escHtml(msg) + (why ? "<span class='why'>" + escHtml(why) + "</span>" : "");
+  }
+
+  /* sayBtn puts the word in an HTML attribute, which a sentence carrying
+     quotation marks would break. These hand the text over in a closure. */
+  function hearBtn() { return canSpeak ? '<button class="btn say" id="sayIt">🔊 Hear it</button>' : ""; }
+  function hearWire(text) {
+    var b = $("sayIt");
+    if (b) b.addEventListener("click", function () { say(text); });
+  }
+
+  /* Find the Word — every word in the sentence is tappable. The answer was
+     marked with [brackets] in data/grammar.js; the marker below survives the
+     split into words, so punctuation stays stuck to the word it belongs to. */
+  function askFind(it) {
+    var MARK = "\u0001";   // never appears in a sentence, so it cannot be typed by accident
+    var toks = (it.before + MARK + it.answer + MARK + it.after)
+                 .split(/\s+/).filter(function (t) { return t.length; });
+
+    $("stage").innerHTML = "<div class='stage'><p class='ask'>" + escHtml(it.q) + "</p>" +
+      "<p class='sent' id='sent'></p>" + hearBtn() + "</div>";
+    hearWire(it.before + it.answer + it.after);
+
+    var sent = $("sent");
+    toks.forEach(function (t, i) {
+      var isAns = t.indexOf(MARK) !== -1;
+      var b = document.createElement("button");
+      b.className = "tok";
+      b.textContent = t.split(MARK).join("");
+      b.setAttribute("data-ans", isAns ? "1" : "0");
+      b.addEventListener("click", function () {
+        b.className = "tok " + (isAns ? "right" : "wrong");
+        sent.querySelectorAll(".tok").forEach(function (x) {
+          x.disabled = true;
+          if (!isAns && x.getAttribute("data-ans") === "1") x.className = "tok right";
+        });
+        tell(isAns, isAns ? "Yes — " + it.answer + " is " + it.tag + "."
+                          : it.answer + " is " + it.tag + ".", it.why);
+        advance(isAns, it);
+      });
+      sent.appendChild(b);
+      if (i < toks.length - 1) sent.appendChild(document.createTextNode(" "));
+    });
+  }
+
+  /* Which Word? — the answer is lifted out of the sentence and offered beside
+     the wrong choices the week supplies. Nothing is spoken beforehand: the
+     sentence read aloud would hand over the answer. */
+  function askPick(it) {
+    var opts = shuffled([it.answer].concat(it.o));
+
+    $("stage").innerHTML = "<div class='stage'><p class='ask'>" + escHtml(it.q) + "</p>" +
+      "<p class='sent'>" + escHtml(it.before) +
+      "<span class='blankw' id='blank'>&nbsp;</span>" + escHtml(it.after) + "</p></div>" +
+      "<div class='choices'>" + opts.map(function (o, i) {
+        return "<button class='btn choice' data-opt-i='" + i + "'>" + escHtml(o) + "</button>";
+      }).join("") + "</div>";
+
+    document.querySelectorAll("[data-opt-i]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = opts[+b.getAttribute("data-opt-i")] === it.answer;
+        b.className = "btn choice " + (ok ? "right" : "wrong");
+        document.querySelectorAll("[data-opt-i]").forEach(function (x) {
+          x.disabled = true;
+          if (!ok && opts[+x.getAttribute("data-opt-i")] === it.answer) x.className = "btn choice right";
+        });
+        var blank = $("blank");
+        blank.textContent = it.answer;
+        blank.className = "blankw filled " + (ok ? "right" : "wrong");
+        /* Punctuation answers get their own wording. "It's ?." is a sentence
+           with two end marks in it and reads as a typo. */
+        var isWord = /[a-z]/i.test(it.answer);
+        tell(ok, isWord ? (ok ? "Yes — " + it.answer + "." : "It's " + it.answer + ".")
+                        : (ok ? "Yes — it's  " + it.answer : "The mark is  " + it.answer), it.why);
+        /* The finished sentence is worth hearing, but only when the answer is
+           a word — a comma and a period sound exactly alike. */
+        if (isWord) say(it.before + it.answer + it.after);
+        advance(ok, it);
+      });
+    });
+  }
+
+  /* Which Kind? — the same idea as Sort It, on grammar rather than spelling. */
+  function askGroup(it) {
+    var order = shuffled(it.groups.map(function (_, i) { return i; }));
+    var short = it.w.length <= 16;
+
+    $("stage").innerHTML = "<div class='stage'><p class='ask'>" + escHtml(it.q) + "</p>" +
+      (short ? "<p class='the-word'>" : "<p class='sent'>") + escHtml(it.w) + "</p>" +
+      hearBtn() + "</div>" +
+      "<div class='choices'>" + order.map(function (gi) {
+        var g = it.groups[gi];
+        return "<button class='btn choice' data-gi='" + gi + "'>" + escHtml(g.label) +
+               (g.hint ? "<span class='small'>" + escHtml(g.hint) + "</span>" : "") + "</button>";
+      }).join("") + "</div>";
+    hearWire(it.w);
+
+    document.querySelectorAll("[data-gi]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = +b.getAttribute("data-gi") === it.gi;
+        b.className = "btn choice " + (ok ? "right" : "wrong");
+        lockAndMark("[data-gi]", ok, String(it.gi), "data-gi");
+        tell(ok, ok ? "That's the one!" : "It goes with " + it.groups[it.gi].label + ".", it.why);
+        advance(ok, it);
+      });
+    });
+  }
+
+  /* Fix It — three versions of a sentence, one written correctly. They stack
+     down the screen rather than sitting in a row, because they're sentences. */
+  function askFix(it) {
+    var opts = shuffled([it.ok].concat(it.bad));
+
+    $("stage").innerHTML = "<div class='stage'><p class='ask'>" + escHtml(it.q) + "</p></div>" +
+      "<div class='choices stack'>" + opts.map(function (o, i) {
+        return "<button class='btn choice' data-opt-i='" + i + "'>" + escHtml(o) + "</button>";
+      }).join("") + "</div>";
+
+    document.querySelectorAll("[data-opt-i]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var ok = opts[+b.getAttribute("data-opt-i")] === it.ok;
+        b.className = "btn choice " + (ok ? "right" : "wrong");
+        document.querySelectorAll("[data-opt-i]").forEach(function (x) {
+          x.disabled = true;
+          if (!ok && opts[+x.getAttribute("data-opt-i")] === it.ok) x.className = "btn choice right";
+        });
+        tell(ok, ok ? "That's the one!" : "Not quite — the right one is marked.", it.why);
+        advance(ok, it);
+      });
+    });
+  }
+
   // ---------- done ----------
   function finish() {
     var total = state.queue.length, pct = total ? state.right/total : 0;
@@ -1108,14 +1438,26 @@
     show("s-done");
   }
 
+  /* Interleaved on purpose: reading, listening, sorting, building. Two
+     activities of the same kind shouldn't land back to back. */
+  var WORD_ROTATION = ["read","listen","sort","spell","picture","odd","gap","real"];
+  var GRAM_ROTATION = ["gfind","gpick","ggroup","gfix"];
+
   /* Keep going: rotate through whatever this week supports, so an open-ended
-     session doesn't become the same activity ten times over. */
+     session doesn't become the same activity ten times over — but stay in the
+     strand they chose. A child working on commas shouldn't be dropped into
+     vowel teams because the round happened to end. */
   function keepGoing() {
-    var week = weekByNum(state.week), can = available(week);
-    /* Interleaved on purpose: reading, listening, sorting, building. Two
-       activities of the same kind shouldn't land back to back. */
-    var order = ["read","listen","sort","spell","picture","odd","gap","real"]
-                  .filter(function (a) { return can[a]; });
+    var week = weekByNum(state.week), can = available(week), gcan = grammarAvailable(week);
+    var mine = GACT[state.activity] ? GRAM_ROTATION : WORD_ROTATION;
+    var order = mine.filter(function (a) { return can[a] || gcan[a]; });
+
+    // A strand with only the one activity has nowhere to rotate to, so widen.
+    if (order.length < 2) {
+      order = WORD_ROTATION.filter(function (a) { return can[a]; })
+                .concat(GRAM_ROTATION.filter(function (a) { return gcan[a]; }));
+    }
+    if (!order.length) return goHome();
     state.rotate = (state.rotate + 1) % order.length;
     start(order[state.rotate]);
   }

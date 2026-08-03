@@ -141,7 +141,10 @@
   "use strict";
   var STORE = "phonics.progress.v1";
   var ACT = { read:"Read It", listen:"Hear It", picture:"Picture Match", spell:"Spell It",
-              sort:"Sort It", gap:"Missing Piece", odd:"Odd One Out", real:"Real or Not" };
+              sort:"Sort It", gap:"Missing Piece", odd:"Odd One Out", real:"Real or Not",
+              /* Grammar. The g tells them apart from the word-study rounds at
+                 a glance in the table below. */
+              gfind:"Find the Word", gpick:"Which Word?", ggroup:"Which Kind?", gfix:"Fix It" };
   var LEVELS = [ { v:"easy", t:"Easy words" }, { v:"core", t:"Core words" },
                  { v:"challenge", t:"Challenging words" }, { v:"mixed", t:"A mix of all three" } ];
   var $ = function (id) { return document.getElementById(id); };
@@ -152,8 +155,12 @@
   }
   function save(d) { localStorage.setItem(STORE, JSON.stringify(d)); }
 
-  /* Words a student marked tricky or got wrong, counted. This is the part
-     worth reading — it's the small-group list, generated while you were busy. */
+  /* What a student marked tricky or got wrong, counted. This is the part
+     worth reading — it's the small-group list, generated while you were busy.
+
+     A word-study miss records the word. A grammar miss records the skill, so
+     it reads "Commas in a series ×4" rather than quoting four sentences back
+     at you — the skill is what you'd reteach anyway. */
   function watchList(rounds) {
     var count = {};
     rounds.forEach(function (r) {
@@ -215,7 +222,7 @@
         " · " + totalR + " of " + totalQ + " correct (" + pct + "%)</p>";
 
       var watchHtml = watch.length
-        ? "<div class='watch'><h3>Words to work on</h3><div class='words'>" +
+        ? "<div class='watch'><h3>To work on</h3><div class='words'>" +
           watch.slice(0,14).map(function (x) {
             return x.w + (x.n > 1 ? " <span class='n'>×"+x.n+"</span>" : "");
           }).join(" &nbsp;·&nbsp; ") + "</div></div>"

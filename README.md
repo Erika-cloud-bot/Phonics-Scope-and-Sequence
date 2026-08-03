@@ -9,12 +9,13 @@ Each week pairs a phonics/word-study focus with a morphology focus and a grammar
 | File | Contents |
 |---|---|
 | [`Grade3_Phonics_Grammar_Scope_and_Sequence.md`](Grade3_Phonics_Grammar_Scope_and_Sequence.md) | The full 36-week sequence, in three term tables |
-| [`index.html`](index.html) | Word list generator — pick a week, get practice words |
-| [`student.html`](student.html) | Student practice app — four activities per week |
+| [`index.html`](index.html) | Word list generator — pick a week, get practice words and grammar questions |
+| [`student.html`](student.html) | Student practice app — word study and grammar activities, week by week |
 | [`progress.html`](progress.html) | Progress view — what students did, and what to work on |
 | [`data/sequence.js`](data/sequence.js) | The 36 weeks in a form the app can read |
 | [`data/wordbank.js`](data/wordbank.js) | The words, grouped by pattern and difficulty tier |
 | [`data/meanings.js`](data/meanings.js) | Picture (emoji) meanings for concrete words |
+| [`data/grammar.js`](data/grammar.js) | The grammar questions, grouped by week |
 
 ## Word list generator
 
@@ -26,9 +27,11 @@ Pick a week and it generates practice words for that week's pattern, in three ti
 - **core** — the grade-level target
 - **challenge** — multisyllabic, or the pattern somewhere less obvious
 
-That tiering comes from the differentiation note in the sequence itself: hold the weekly pattern constant, vary the word complexity. Untick a tier to hide it, cap how many words each tier shows, **Shuffle** for a different draw, then **Print** for a clean sheet with the controls stripped out, or **Copy** to paste into a doc.
+That tiering comes from the differentiation note in the sequence itself: hold the weekly pattern constant, vary the word complexity. Untick a tier to hide it, cap how many words each list shows, **Shuffle** for a different draw, then **Print** for a clean sheet with the controls stripped out, or **Copy** to paste into a doc.
 
-Review and assessment weeks have no new pattern, so they generate no words by design.
+Underneath the words is **Grammar practice** — that week's questions from `data/grammar.js`, with the answers marked in bold. It's an answer key rather than a blank worksheet, since you're the one printing it; **Copy** gives you plain text if you'd rather build a student version from it.
+
+Review and assessment weeks have no new pattern, so they generate no words by design. They do have grammar: a review week names the weeks it revisits rather than reprinting the whole year underneath it.
 
 ### Changing the words
 
@@ -51,7 +54,9 @@ Open `student.html` — or click **Student practice app** from the word list gen
 
 Built for a student to use **independently while you're teaching the whole class**, and to leave you a record of what happened.
 
-A child types their name, picks a world, picks a week, then chooses an activity. The app only offers activities that week's pattern can actually support, so nothing broken is ever put in front of them:
+A child types their name, picks a world, picks a week, then chooses an activity. The week's activities are split into **Word study** and **Grammar**, which is how the sequence pairs them. The app only offers activities that week can actually support, so nothing broken is ever put in front of them.
+
+### Word study
 
 | Activity | What the child does | Offered when |
 |---|---|---|
@@ -64,7 +69,24 @@ A child types their name, picks a world, picks a week, then chooses an activity.
 | **Odd One Out** | Four words, three sharing the week's pattern; they find the intruder | The week's pattern is a findable letter chunk |
 | **Real or Not** | A real word, or an invented one built from it; they judge which | 4+ words can be safely altered |
 
-Ten questions a round, then a score with stars. **Keep going →** rotates to a different activity on the same week, so an open-ended session doesn't become the same thing ten times over.
+### Grammar
+
+The grammar column of the sequence, as questions a child can answer on their own. Four kinds, in `data/grammar.js`:
+
+| Activity | What the child does | Example |
+|---|---|---|
+| **Find the Word** | Every word in a sentence is tappable; they tap the one being asked for | *Which word is the adverb?* — The turtle moved **slowly** across the sand. |
+| **Which Word?** | A sentence with a gap, and three words to fill it | *My boots ▁ by the door.* — are / is / am |
+| **Which Kind?** | A word or phrase, and two to four groups it might belong to | *When, or where?* — **yesterday** |
+| **Fix It** | Three versions of a sentence; they pick the one written correctly | *Which sentence is punctuated correctly?* |
+
+Not every kind suits every focus. Commas are a Fix It week; collective nouns are a Find the Word week. Across the year there are **83 week-and-activity combinations**: most weeks offer two, the review weeks offer all four, and two weeks (32 and 35) offer one.
+
+**Under every answer, right or wrong, is the rule behind it** — *"Funny ends in y, so the y changes to i before -er"*, *"You're means you are"*. That's where the teaching is, which is why the pause before the next question counts the rule as well as the verdict.
+
+**Every week now opens.** Weeks 1, 12, 14, 25, 26 and 34–36 have no new spelling pattern and used to be greyed out for the whole year. They all have a grammar focus, so they're now live — and on those weeks the empty Word study section is hidden rather than shown full of dead buttons.
+
+Ten questions a round, then a score with stars. **Keep going →** rotates to a different activity on the same week, so an open-ended session doesn't become the same thing ten times over. It **stays in the strand they chose**: a child working on commas isn't dropped into vowel teams because the round happened to end.
 
 ### How long the answer stays on screen
 
@@ -83,6 +105,8 @@ var READ_FREE_CHARS  = 12;    // short messages this long aren't slowed at all
 
 `200` is about 55 words a minute. Raising it to `280` puts the longest explanation at about ten seconds; dropping it to `70` is roughly a fluent Grade 3 reader.
 
+**One thing to watch now that grammar is in.** A grammar answer shows a verdict *and* the rule under it — usually 90 to 120 characters together, which at 200ms each runs past the 12-second ceiling in `READ_MAX`. So a missed grammar question holds the screen for the full 12 seconds unless the child presses **Next →**. That's the pace you set for Step 1 readers doing exactly what you asked of it, but the word-study feedback never reached the ceiling and grammar reaches it most times. If it feels long in the room, drop `READ_MS_PER_CHAR` to about `120` — that brings a typical grammar explanation back to six or seven seconds and leaves the word-study pauses roughly where they were.
+
 **Read It and Hear It are opposites, and both are needed.** Read It goes print → sound, but the app can't hear the child, so it's self-marked and can't be scored honestly. Hear It goes sound → print, which the app *can* mark. Between them you get both directions and one real score.
 
 Across the 28 weeks that have words, 15 offer all eight activities, and the leanest — Week 33, irregular spellings — offers four. Before these were added it offered one.
@@ -94,6 +118,29 @@ This one invents its nonsense words rather than storing them: it swaps the conso
 Before showing an invented word it's checked against the whole word bank, every word with a picture, and a list of common short words held in `COMMON` near the top of `student.html`. If nothing safe can be built, the real word is simply shown instead — a failed check costs variety, never correctness.
 
 **No such list is a dictionary.** If a student is ever shown a real word marked "not a word", add it to `COMMON` and it will never appear again. The likeliest gap is a homophone — an invented spelling that happens to sound like a real word.
+
+### Changing the grammar questions
+
+`data/grammar.js` is keyed by week, because a grammar focus belongs to its week in a way a vowel team doesn't. **The answer is whatever sits in `[brackets]`** — that one convention covers three of the four activities:
+
+```js
+5: { name: "Subject pronouns",
+  find: { q: "Which word is the subject pronoun?", tag: "the subject pronoun",
+          items: ["[We] planted seeds in the garden.", ...] },
+  pick: { q: "Which word finishes the sentence?", items: [
+          { s: "[She] plays the drums.", o: ["Her", "Hers"],
+            why: "She does the action, so it is a subject pronoun." } ] } },
+```
+
+`o` holds the wrong choices offered beside the answer. `why` is optional and is the rule shown underneath. `group` lists its groups and their words; `fix` gives `ok` and two `bad` versions.
+
+**Write sentences where only the bracketed word can be the answer.** "Which word is the noun?" needs a sentence holding exactly one noun, or a child who answers correctly is marked wrong. That's the one rule worth being fussy about — three sentences were rewritten during testing for exactly this.
+
+A malformed question is skipped rather than shown, so a mistyped bracket costs you that question and nothing else.
+
+Review weeks carry `review: [3, 4, 5]` and borrow those weeks' questions, each keeping its own wording — which is what makes a mixed review genuinely mixed. Week 35 adds `only: ["fix"]` to keep independent editing practice to editing.
+
+**Grammar questions are not tiered by reader level.** The word bank has easy/core/challenge tiers and the grammar bank has one level, pitched at Grade 3. A reader set to "easy words" still gets easy words in the word-study activities; their grammar questions are the same ones everyone else gets. Differentiating grammar means writing three versions of every sentence, which is a much bigger job than it sounds — the data shape would take it if you ever wanted to.
 
 ### Word levels
 
@@ -141,7 +188,9 @@ Three worlds, one per term — the Forest, the Ocean, Deep Space — which chang
 
 ## Progress
 
-Open `progress.html` to see what students did. For each reader: rounds completed, overall accuracy, and — most usefully — **Words to work on**, every word they marked tricky or got wrong, counted by how often. That's your small-group list, built while you were busy with the class.
+Open `progress.html` to see what students did. For each reader: rounds completed, overall accuracy, and — most usefully — **To work on**, everything they marked tricky or got wrong, counted by how often. That's your small-group list, built while you were busy with the class.
+
+A word-study miss records the word. A **grammar miss records the skill**, so the list reads *"Commas in a series ×4"* rather than quoting four sentences back at you — the skill is what you'd reteach anyway.
 
 ### Where the data lives, and its one real limit
 
