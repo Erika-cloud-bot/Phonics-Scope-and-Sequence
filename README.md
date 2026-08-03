@@ -66,6 +66,23 @@ A child types their name, picks a world, picks a week, then chooses an activity.
 
 Ten questions a round, then a score with stars. **Keep going →** rotates to a different activity on the same week, so an open-ended session doesn't become the same thing ten times over.
 
+### How long the answer stays on screen
+
+Several activities explain themselves after an answer — *"It's splendid, the others are ur words"*, *"Not a word, the real one is brush"* — and that explanation is where the teaching happens. It's no use if it's gone before the child has read it.
+
+The pause therefore scales with how much there is to read, and it's **set for Step 1 ESL readers**, who are the slowest readers in the room and so the ones who should decide the number. Roughly: short confirmations like *"Yes — cat!"* stay under a second, while a full sentence gets four to seven seconds.
+
+A **Next →** button appears with every answer, so a reader who's finished early never has to sit and wait. Waiting does exactly the same thing — the button is a shortcut, not a step, so a child who ignores it loses nothing.
+
+If the pace is still wrong for your class, two numbers near the top of the `<script>` in `student.html` control all of it:
+
+```js
+var READ_MS_PER_CHAR = 200;   // higher = longer pauses
+var READ_FREE_CHARS  = 12;    // short messages this long aren't slowed at all
+```
+
+`200` is about 55 words a minute. Raising it to `280` puts the longest explanation at about ten seconds; dropping it to `70` is roughly a fluent Grade 3 reader.
+
 **Read It and Hear It are opposites, and both are needed.** Read It goes print → sound, but the app can't hear the child, so it's self-marked and can't be scored honestly. Hear It goes sound → print, which the app *can* mark. Between them you get both directions and one real score.
 
 Across the 28 weeks that have words, 15 offer all eight activities, and the leanest — Week 33, irregular spellings — offers four. Before these were added it offered one.
