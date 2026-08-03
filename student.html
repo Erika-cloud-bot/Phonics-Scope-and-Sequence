@@ -112,6 +112,10 @@
   .feedback { text-align: center; font-size: 21px; font-weight: 700; min-height: 32px; margin-top: 16px; }
   .feedback.good { color: var(--good); } .feedback.bad { color: var(--bad); }
 
+  /* Only appears once an answer is in, so it can't be mistaken for a choice.
+     Waiting does the same thing — this is for readers who are already done. */
+  .next-btn { display: block; margin: 14px auto 0; min-width: 190px; font-size: 19px; }
+
   /* ---- done ---- */
   .score { text-align: center; }
   .score .big { font-size: 56px; font-weight: 700; line-height: 1.1; }
@@ -162,6 +166,7 @@
   </div>
   <div id="stage"></div>
   <div class="feedback" id="feedback"></div>
+  <button class="btn primary next-btn hidden" id="nextBtn">Next →</button>
 </div>
 
 <!-- ===== DONE ===== -->
@@ -188,6 +193,25 @@
 
   var ROUND = 10;
   var STORE = "phonics.progress.v1";
+
+  /* ---- how long the feedback stays on screen ----
+     Tuned for Step 1 ESL readers, who are the slowest readers in the room and
+     so the ones who decide this number. A pause that's too long costs a strong
+     reader a moment they can skip with the Next button; a pause that's too
+     short costs a beginner the explanation entirely. That trade is one-sided,
+     so this errs slow.
+
+     READ_MS_PER_CHAR 200 is about 55 words a minute — an unhurried beginner
+     reading English print, with a little thinking time on top. The first
+     READ_FREE_CHARS are free so short confirmations ("Yes — cat!") stay snappy.
+
+     To change the pace for your class, change these two numbers and nothing
+     else. Higher READ_MS_PER_CHAR = longer pauses. */
+  var READ_MS_PER_CHAR = 200;
+  var READ_FREE_CHARS  = 12;
+  var READ_MIN_RIGHT   = 900;    // floor after a correct answer
+  var READ_MIN_WRONG   = 1500;   // floor after a wrong one — more to take in
+  var READ_MAX         = 12000;  // nothing should strand a child longer than this
 
   var GRAPHEME = { "ow-long-o":"ow","ow-loud":"ow","oo-long":"oo","oo-short":"oo",
     "er-r":"er","er-agent":"er","soft-c":"c","soft-g":"g","consonant-le":"le" };
@@ -663,7 +687,7 @@
   }
 
   // ---------- home ----------
-  function goHome() { state.week = null; show("s-home"); buildHome(); }
+  function goHome() { cancelPending(); state.week = null; show("s-home"); buildHome(); }
 
   function buildHome() {
     document.body.className = WORLDS[state.world].css;
@@ -759,6 +783,7 @@
   }
   function nextQ() {
     $("feedback").textContent = ""; $("feedback").className = "feedback";
+    $("nextBtn").classList.add("hidden");
     if (state.at >= state.queue.length) return finish();
     var it = state.queue[state.at];
     if (state.activity === "read")    return askRead(it);
@@ -770,26 +795,38 @@
     if (state.activity === "real")    return askReal(it);
     return askGap(it);
   }
-  /* How long the feedback stays up before the next question.
-
-     A flat pause was too quick for the activities that answer in a sentence:
-     "It's splendid — the others are ur words" was gone before a Grade 3
-     reader had finished it, while "Yes — cat!" needs no extra time at all.
-     So the pause is the old one plus reading time for anything past a short
-     confirmation — the first 16 characters are free, then 70ms a character,
-     which is an unhurried Grade 3 reading speed.
-
-     A wrong answer starts higher, because that's when the explanation is the
-     whole point. Capped so a long message can't strand a child.
+  /* The pause between answering and the next question, scaled to how much
+     there is to read. See READ_MS_PER_CHAR at the top of this script for the
+     pace and how to change it.
 
      Every ask* function sets the feedback before calling this, which is why
      the message can simply be read back off the screen here. */
+  var pendingNext = null;
+
+  function cancelPending() {
+    if (pendingNext) { clearTimeout(pendingNext); pendingNext = null; }
+    $("nextBtn").classList.add("hidden");
+  }
+
+  /* Both the timer and the Next button come through here, so neither can
+     double-fire, and a child who quit mid-feedback is never dragged into a
+     score screen by a pause that was still running. */
+  function goNext() {
+    cancelPending();
+    if ($("s-play").classList.contains("hidden")) return;
+    nextQ();
+  }
+
   function advance(ok, item) {
     if (ok) state.right++; else if (item) state.tricky.push(item.word);
     markDot(state.at, ok); state.at++;
-    var msg = $("feedback").textContent || "";
-    var hold = (ok ? 700 : 1250) + Math.max(0, msg.length - 16) * 70;
-    setTimeout(nextQ, Math.min(hold, 6000));
+
+    var msg  = $("feedback").textContent || "";
+    var hold = (ok ? READ_MIN_RIGHT : READ_MIN_WRONG) +
+               Math.max(0, msg.length - READ_FREE_CHARS) * READ_MS_PER_CHAR;
+
+    $("nextBtn").classList.remove("hidden");
+    pendingNext = setTimeout(goNext, Math.min(hold, READ_MAX));
   }
   function wire() {
     document.querySelectorAll("[data-say]").forEach(function (b) {
@@ -1090,6 +1127,7 @@
     window.scrollTo(0,0);
   }
 
+  $("nextBtn").addEventListener("click", goNext);
   $("quit").addEventListener("click", goHome);
   $("keepGoing").addEventListener("click", keepGoing);
   $("pickOther").addEventListener("click", goHome);
