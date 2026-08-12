@@ -813,16 +813,22 @@
   function pickReader(n) {
     state.who = n;
     state.level = levelOf(n);
+    state.week = null;   // a new reader starts from the week list, not the last one's week
     goHome();
   }
 
   // ---------- home ----------
-  function goHome() { cancelPending(); state.week = null; show("s-home"); buildHome(); }
+  /* Coming back from a round keeps the world and week the child was in, so the
+     activity grid they left is still open under them. A child who stops in the
+     middle of Week 7 shouldn't have to remember it was Week 7. */
+  function goHome() { cancelPending(); show("s-home"); buildHome(); }
 
   function buildHome() {
     document.body.className = WORLDS[state.world].css;
     $("pipHome").innerHTML = pip("hi");
-    $("homeMsg").textContent = "Hello " + state.who + "! Pick a week to practise.";
+    $("homeMsg").textContent = state.week === null
+      ? "Hello " + state.who + "! Pick a week to practise."
+      : "Pick something to practise, " + state.who + "!";
     var st = myStars();
     $("homeStars").textContent = st ? "★ " + st + " star" + (st === 1 ? "" : "s") + " so far" : "";
     $("worldName").textContent = WORLDS[state.world].name;
