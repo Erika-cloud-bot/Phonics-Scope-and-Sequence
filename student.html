@@ -11,22 +11,138 @@
     --ink: #2b2724; --soft: #6f665f; --card: #fff; --line: #e7ddd0;
     --good: #3f8f5f; --bad: #c4553d; --gold: #f0a92e;
     --page: #fff8ec; --deep: #3b7ea1; --glow: #eaf4f8;
+    --sky-1: #eaf4f8; --sky-2: #f4fafc;
   }
-  body.w-forest { --page:#f2f8ee; --deep:#3f7d4e; --glow:#e4f0dd; }
-  body.w-ocean  { --page:#eef6fa; --deep:#2f6f92; --glow:#dceaf2; }
-  body.w-space  { --page:#f4f0fa; --deep:#6a4f96; --glow:#e8e0f4; }
+  /* A world is a place, not a colour swatch: each one gets a sky overhead, a
+     ground underfoot, and animals living in it. The sky runs from --page at the
+     top, where the words are read, down through --sky-2 to --sky-1 at the
+     horizon — so the page can be a forest and still be black text on paper. */
+  body.w-forest { --page:#f6fbf1; --deep:#3f7d4e; --glow:#e4f0dd;
+                  --sky-1:#cfe9f2; --sky-2:#e9f5e4; }
+  body.w-ocean  { --page:#f3fafd; --deep:#2f6f92; --glow:#dceaf2;
+                  --sky-1:#c3e6f4; --sky-2:#e2f2f9; }
+  body.w-space  { --page:#f8f4fd; --deep:#6a4f96; --glow:#e8e0f4;
+                  --sky-1:#d5c8ee; --sky-2:#ebe3f7; }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0; min-height: 100vh; font: 18px/1.5 "Segoe UI", system-ui, sans-serif;
-    color: var(--ink); background: var(--page);
+    color: var(--ink);
+    background: linear-gradient(var(--page) 0%, var(--sky-2) 46%, var(--sky-1) 100%) fixed;
     display: flex; flex-direction: column; align-items: center;
     transition: background .4s;
   }
-  .screen { width: 100%; max-width: 820px; padding: 18px 16px 60px; }
+  .screen { width: 100%; max-width: 820px; padding: 18px 16px 40px; position: relative; z-index: 1; }
   .hidden { display: none !important; }
   h1 { font-size: 28px; margin: 6px 0; }
   .sub { color: var(--soft); margin: 0 0 20px; }
+
+  /* ---- the world itself ----
+     Three layers, none of which a word ever has to be read on top of:
+       body::before  air — pollen, bubbles or starlight drifting behind
+       .ground       the bottom band, pushed below the content by margin-top:auto
+       .world-scene  the picture-book banner at the top of the home screen
+     All of it is SVG written in this file, so a Chromebook with the wifi off
+     still gets the whole forest. */
+  body::before {
+    content: ""; position: fixed; left: 0; right: 0; top: -30%; bottom: -30%;
+    pointer-events: none; z-index: 0; opacity: .55;
+    background-repeat: repeat;
+  }
+  body.w-forest::before {
+    /* pollen drifting up through the trees */
+    background-image:
+      radial-gradient(circle, rgba(240,169,46,.55) 1.6px, transparent 2px),
+      radial-gradient(circle, rgba(63,125,78,.4) 1.2px, transparent 1.8px);
+    background-size: 190px 150px, 130px 210px;
+    background-position: 0 0, 60px 40px;
+    animation: airUp 34s linear infinite;
+  }
+  body.w-ocean::before {
+    /* bubbles rising */
+    background-image:
+      radial-gradient(circle, rgba(255,255,255,.85) 3px, transparent 3.6px),
+      radial-gradient(circle, rgba(255,255,255,.6) 1.8px, transparent 2.4px);
+    background-size: 240px 190px, 150px 130px;
+    background-position: 0 0, 90px 30px;
+    animation: airUp 22s linear infinite;
+  }
+  body.w-space::before {
+    /* starlight */
+    background-image:
+      radial-gradient(circle, rgba(106,79,150,.6) 1.7px, transparent 2.2px),
+      radial-gradient(circle, rgba(240,169,46,.55) 1.3px, transparent 1.8px);
+    background-size: 170px 170px, 110px 140px;
+    background-position: 0 0, 55px 70px;
+    animation: starPulse 5s ease-in-out infinite;
+  }
+  @keyframes airUp { from { transform: translateY(0); } to { transform: translateY(-210px); } }
+  @keyframes starPulse { 0%,100% { opacity: .35; } 50% { opacity: .7; } }
+
+  /* The bottom band sits in the flow, after every screen, so it can never end
+     up behind a word. Short screens push it to the bottom of the window; long
+     ones let it slide down under the last button. */
+  .ground { width: 100%; margin-top: auto; line-height: 0; pointer-events: none; z-index: 0; }
+  .ground svg { display: block; width: 100%; height: clamp(100px, 17vh, 168px); }
+  /* The home screen has the banner up top and a lot to fit underneath it, so it
+     doesn't carry the band as well — two helpings of scenery there push the
+     week buttons off a Chromebook screen. */
+  body.at-home .ground { display: none; }
+
+  .world-scene {
+    width: 100%; line-height: 0; overflow: hidden; margin: 0 0 16px;
+    border: 4px solid #fff; border-radius: 22px; box-shadow: 0 6px 16px rgba(43,39,36,.15);
+  }
+  /* height:auto lets the picture keep its own 4:1 shape at every width, so the
+     scene is never cropped — a banner that crops eats the fox's feet first,
+     since everything alive in it is standing on the ground at the bottom. */
+  .world-scene svg { display: block; width: 100%; height: auto; }
+
+  /* Choosing a world is the most exciting button on the page, so it looks like
+     a place you can go rather than a tab. The world you're not in is faded, the
+     way the lights go down on the rest of the map. */
+  .worlds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .wcard {
+    font: inherit; cursor: pointer; color: var(--ink); background: var(--card);
+    border: 3px solid var(--line); border-radius: 18px; padding: 10px 6px 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    opacity: .68; filter: saturate(.5);
+    transition: transform .15s, opacity .2s, filter .2s, box-shadow .15s;
+  }
+  .wcard svg { width: 52px; height: 52px; }
+  .wcard .wname { font-size: 15px; font-weight: 700; line-height: 1.15; text-align: center; }
+  .wcard:hover { transform: translateY(-3px); opacity: .9; }
+  .wcard.on {
+    opacity: 1; filter: none; border-color: var(--wc);
+    box-shadow: 0 5px 0 var(--wc); transform: translateY(-2px);
+  }
+  .wcard.w1 { --wc:#3f7d4e; } .wcard.w2 { --wc:#2f6f92; } .wcard.w3 { --wc:#6a4f96; }
+
+  /* Gentle, slow, and only ever on decoration — nothing moves near a word.
+     During a round even that is turned down, so the scenery doesn't compete
+     with the thing being read. */
+  .float  { animation: float 4.5s ease-in-out infinite; }
+  .float2 { animation: float 6s ease-in-out infinite -1.8s; }
+  .swim   { animation: swim 9s ease-in-out infinite; }
+  .swim2  { animation: swim 12s ease-in-out infinite -4s; }
+  .sway   { animation: sway 5s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom center; }
+  .sway2  { animation: sway 6.5s ease-in-out infinite -2s; transform-box: fill-box; transform-origin: bottom center; }
+  .twinkle  { animation: twinkle 3s ease-in-out infinite; }
+  .twinkle2 { animation: twinkle 4.2s ease-in-out infinite -1.5s; }
+  .flame  { animation: flame .28s steps(2) infinite; transform-box: fill-box; transform-origin: top center; }
+  @keyframes float  { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  @keyframes swim   { 0%,100% { transform: translateX(0); } 50% { transform: translateX(38px) translateY(-10px); } }
+  @keyframes sway   { 0%,100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+  @keyframes twinkle{ 0%,100% { opacity: .25; } 50% { opacity: 1; } }
+  @keyframes flame  { 0% { transform: scaleY(.82); } 100% { transform: scaleY(1.1); } }
+
+  body.playing .ground svg { opacity: .4; }
+  body.playing::before { opacity: .18; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .float, .float2, .swim, .swim2, .sway, .sway2,
+    .twinkle, .twinkle2, .flame, body::before { animation: none !important; }
+  }
 
   /* ---- mascot ---- */
   .pip { width: 92px; height: 92px; flex: none; }
@@ -56,9 +172,6 @@
 
   .wk { min-width: 48px; height: 46px; font-variant-numeric: tabular-nums; padding: 0 10px; }
   .wk.on { background: var(--deep); border-color: var(--deep); color: #fff; font-weight: 700; }
-
-  .world-tab { font-weight: 600; }
-  .world-tab.on { background: var(--deep); border-color: var(--deep); color: #fff; }
 
   .acts { display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 12px; margin-top: 6px; }
   .act { text-align: left; padding: 16px; border-radius: 15px; }
@@ -171,6 +284,7 @@
 
 <!-- ===== HOME ===== -->
 <div class="screen hidden" id="s-home">
+  <div class="world-scene" id="worldScene" aria-hidden="true"></div>
   <div class="greet">
     <div id="pipHome"></div>
     <div class="bubble" id="homeMsg"></div>
@@ -178,7 +292,7 @@
   <p class="stars-line" id="homeStars"></p>
 
   <p class="sub" style="margin:18px 0 6px"><strong id="worldName"></strong></p>
-  <div class="row" id="worldTabs" style="margin-bottom:14px"></div>
+  <div class="worlds" id="worldTabs"></div>
   <div class="row" id="weekList"></div>
 
   <div id="actWrap" class="hidden">
@@ -221,6 +335,8 @@
   <button class="btn primary block" id="keepGoing">Keep going →</button>
   <button class="btn block" id="pickOther">Choose something else</button>
 </div>
+
+<div class="ground" id="ground" aria-hidden="true"></div>
 
 <script src="data/sequence.js"></script>
 <script src="data/wordbank.js"></script>
@@ -285,9 +401,9 @@
   };
 
   var WORLDS = {
-    1: { css:"w-forest", name:"The Forest 🌲", term:1 },
-    2: { css:"w-ocean",  name:"The Ocean 🌊",  term:2 },
-    3: { css:"w-space",  name:"Deep Space 🚀", term:3 }
+    1: { css:"w-forest", name:"The Forest 🌲", short:"The Forest", term:1 },
+    2: { css:"w-ocean",  name:"The Ocean 🌊",  short:"The Ocean",  term:2 },
+    3: { css:"w-space",  name:"Deep Space 🚀", short:"Deep Space", term:3 }
   };
 
   /* state.level is set from the reader's saved level when they're picked.
@@ -320,8 +436,380 @@
       '<polygon class="beak" points="50,50 44,57 56,57"/>' + mouth +
       '<ellipse class="beak" cx="40" cy="90" rx="7" ry="4"/>' +
       '<ellipse class="beak" cx="60" cy="90" rx="7" ry="4"/>' +
-      '<path d="M50 16 l4 -9 l4 9" fill="none" stroke="currentColor" stroke-width="0"/>' +
+      pipKit() +
       '</svg>';
+  }
+
+  /* Pip dresses for the world he's in — a leaf in the forest, a diving bubble
+     in the ocean, a helmet in space. Same bird, three places. */
+  function pipKit() {
+    if (state.world === 2)
+      return '<circle cx="50" cy="46" r="40" fill="#bfeefc" opacity=".3"/>' +
+             '<circle cx="50" cy="46" r="40" fill="none" stroke="#8fd8ef" stroke-width="3"/>' +
+             '<circle cx="70" cy="22" r="4" fill="#fff" opacity=".8"/>';
+    if (state.world === 3)
+      return '<circle cx="50" cy="46" r="40" fill="#eaf6ff" opacity=".3"/>' +
+             '<circle cx="50" cy="46" r="40" fill="none" stroke="#cfd6e6" stroke-width="4"/>' +
+             '<circle cx="14" cy="30" r="5" fill="#f0a92e"/>';
+    return '<path d="M68 22 q18 -3 20 -18 q-19 -2 -24 11 q-2 6 4 7Z" fill="#4f9c5e"/>' +
+           '<path d="M68 22 q11 -7 18 -16" stroke="#3f7d4e" stroke-width="1.6" fill="none"/>';
+  }
+
+  // ---------- the three worlds ----------
+  /* Every scene below is drawn here in SVG — no image files, nothing to fetch,
+     nothing that breaks when the wifi does. Helpers take (x, y, scale) with y
+     on the ground the thing is standing on, so a fox and a tree planted at the
+     same y stand on the same line.
+
+     Three layers make a world: the banner at the top of the home screen, the
+     band along the bottom of every screen, and the drifting air behind both
+     (that one is CSS). None of them ever sits behind a word.
+
+     The banner is drawn on an 800x260 field but framed from y=60 down, a 4:1
+     letterbox: the ground and everything standing on it is always in shot, and
+     the sky above the frame is there for the tall shapes to grow into. */
+
+  var uid = 0;
+
+  /* A CSS transform REPLACES an element's transform attribute rather than
+     adding to it, so anything that breathes gets two groups: an outer one that
+     carries the animation and an inner one that carries its place in the scene.
+     Put both on one element and the fox animates itself into the top corner at
+     full size. */
+  function alive(cls, x, y, s, art) {
+    return '<g class="' + cls + '"><g transform="translate(' + x + ',' + y + ') scale(' + s + ')">' +
+      art + '</g></g>';
+  }
+
+  function sceneSvg(b) { return '<svg viewBox="0 60 800 200" preserveAspectRatio="xMidYMid meet" aria-hidden="true">' + b + '</svg>'; }
+  function bandSvg(b)  { return '<svg viewBox="0 0 1200 160" preserveAspectRatio="xMidYMax slice" aria-hidden="true">' + b + '</svg>'; }
+
+  /* One deterministic star pattern, so the sky doesn't rearrange itself every
+     time a child taps a week. */
+  function starField(n, w, h) {
+    var out = "", r = 20250811, i, x, y, rad;
+    function next() { r = (r * 16807) % 2147483647; return r / 2147483647; }
+    for (i = 0; i < n; i++) {
+      x = (next() * w).toFixed(1); y = (next() * h).toFixed(1); rad = (0.9 + next() * 1.9).toFixed(1);
+      out += '<circle class="twinkle' + (i % 2 ? "" : "2") + '" cx="' + x + '" cy="' + y + '" r="' + rad +
+             '" fill="#fff" style="animation-delay:-' + (i % 7) * 0.4 + 's"/>';
+    }
+    return out;
+  }
+
+  // -- forest --
+  function cloud(x, y, s) {
+    return '<g transform="translate(' + x + ',' + y + ') scale(' + s + ')" fill="#fff" opacity=".9">' +
+      '<ellipse cx="0" cy="0" rx="34" ry="17"/><ellipse cx="-26" cy="6" rx="22" ry="12"/>' +
+      '<ellipse cx="24" cy="7" rx="24" ry="13"/><ellipse cx="4" cy="-12" rx="20" ry="14"/></g>';
+  }
+  function pine(x, y, s, far) {
+    var a = far ? "#3d7a4c" : "#4f9c5e", b = far ? "#336640" : "#428450";
+    return '<g transform="translate(' + x + ',' + y + ') scale(' + s + ')">' +
+      '<rect x="-7" y="-26" width="14" height="30" rx="5" fill="#8a5c3c"/>' +
+      '<path d="M0 -104 L30 -54 L-30 -54Z" fill="' + a + '"/>' +
+      '<path d="M0 -78 L37 -24 L-37 -24Z" fill="' + b + '"/>' +
+      '<path d="M0 -50 L44 4 L-44 4Z" fill="' + a + '"/></g>';
+  }
+  function roundTree(x, y, s) {
+    return '<g transform="translate(' + x + ',' + y + ') scale(' + s + ')">' +
+      '<path d="M-6 4 L-4 -42 L4 -42 L6 4Z" fill="#8a5c3c"/>' +
+      '<circle cx="-24" cy="-44" r="21" fill="#57a662"/><circle cx="25" cy="-46" r="23" fill="#6dbf78"/>' +
+      '<circle cx="0" cy="-60" r="30" fill="#63b56e"/><circle cx="-8" cy="-74" r="18" fill="#75c880"/></g>';
+  }
+  function bush(x, y, s) {
+    return '<g transform="translate(' + x + ',' + y + ') scale(' + s + ')" fill="#4f9c5e">' +
+      '<ellipse cx="-17" cy="4" rx="16" ry="12"/><ellipse cx="17" cy="4" rx="17" ry="12"/>' +
+      '<ellipse cx="0" cy="-2" rx="24" ry="16"/></g>';
+  }
+  function flower(x, y, c) {
+    return '<g transform="translate(' + x + ',' + y + ')">' +
+      '<path d="M0 0 L0 -14" stroke="#3f7d4e" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<circle cx="-5" cy="-16" r="3.4" fill="' + c + '"/><circle cx="5" cy="-16" r="3.4" fill="' + c + '"/>' +
+      '<circle cx="0" cy="-20" r="4.4" fill="' + c + '"/><circle cx="0" cy="-18" r="1.9" fill="#f0a92e"/></g>';
+  }
+  function mushroom(x, y, s) {
+    return '<g transform="translate(' + x + ',' + y + ') scale(' + s + ')">' +
+      '<rect x="-4" y="-13" width="8" height="14" rx="3" fill="#fff3e3"/>' +
+      '<path d="M-13 -11 a13 11 0 0 1 26 0Z" fill="#d75c4c"/>' +
+      '<circle cx="-5" cy="-14" r="2.4" fill="#fff3e3"/><circle cx="5" cy="-16" r="2" fill="#fff3e3"/></g>';
+  }
+  function fox(x, y, s) {
+    return alive("float", x, y, s,
+      '<ellipse cx="27" cy="-24" rx="9" ry="21" transform="rotate(26 27 -24)" fill="#e8823c"/>' +
+      '<circle cx="35" cy="-42" r="7.5" fill="#fff3e3"/>' +
+      '<rect x="-12" y="-9" width="7" height="11" rx="3" fill="#c96a2c"/>' +
+      '<rect x="4" y="-9" width="7" height="11" rx="3" fill="#c96a2c"/>' +
+      '<ellipse cx="0" cy="-18" rx="21" ry="16" fill="#e8823c"/>' +
+      '<ellipse cx="-6" cy="-12" rx="12" ry="10" fill="#fff3e3"/>' +
+      '<path d="M-27 -46 l-3 -16 l14 8Z" fill="#e8823c"/><path d="M-6 -48 l7 -15 l6 14Z" fill="#e8823c"/>' +
+      '<circle cx="-15" cy="-36" r="15" fill="#e8823c"/>' +
+      '<path d="M-24 -32 q-13 3 -13 8 q6 5 15 2Z" fill="#fff3e3"/>' +
+      '<circle cx="-36" cy="-25" r="2.8" fill="#3a2c22"/>' +
+      '<circle cx="-20" cy="-39" r="2.4" fill="#3a2c22"/><circle cx="-7" cy="-39" r="2.4" fill="#3a2c22"/>');
+  }
+  function owl(x, y, s) {
+    return '<g transform="translate(' + x + ',' + y + ') scale(' + s + ')">' +
+      '<rect x="-20" y="-26" width="40" height="28" rx="6" fill="#a3703f"/>' +
+      '<ellipse cx="0" cy="-26" rx="20" ry="7" fill="#c08a52"/>' +
+      '<g class="float2">' +
+      '<path d="M-15 -44 l-2 -13 l12 6Z" fill="#8a5a3b"/><path d="M15 -44 l2 -13 l-12 6Z" fill="#8a5a3b"/>' +
+      '<ellipse cx="0" cy="-46" rx="18" ry="21" fill="#a97a52"/>' +
+      '<ellipse cx="0" cy="-42" rx="10" ry="14" fill="#e7cba3"/>' +
+      '<circle cx="-7" cy="-53" r="7" fill="#fff"/><circle cx="7" cy="-53" r="7" fill="#fff"/>' +
+      '<circle cx="-7" cy="-53" r="3.2" fill="#2b2724"/><circle cx="7" cy="-53" r="3.2" fill="#2b2724"/>' +
+      '<polygon points="0,-49 -4,-43 4,-43" fill="#f0a92e"/></g></g>';
+  }
+  function butterfly(x, y, s, c) {
+    return alive("float", x, y, s,
+      '<ellipse cx="-8" cy="-4" rx="9" ry="7" transform="rotate(-25 -8 -4)" fill="' + c + '"/>' +
+      '<ellipse cx="8" cy="-4" rx="9" ry="7" transform="rotate(25 8 -4)" fill="' + c + '"/>' +
+      '<ellipse cx="-7" cy="6" rx="7" ry="5" transform="rotate(20 -7 6)" fill="' + c + '" opacity=".8"/>' +
+      '<ellipse cx="7" cy="6" rx="7" ry="5" transform="rotate(-20 7 6)" fill="' + c + '" opacity=".8"/>' +
+      '<rect x="-1.6" y="-9" width="3.2" height="19" rx="1.6" fill="#4b3a2c"/>');
+  }
+
+  function forestBanner() {
+    return sceneSvg(
+      '<defs><linearGradient id="fsky" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#bde2f5"/><stop offset=".55" stop-color="#e4f3dc"/>' +
+      '<stop offset="1" stop-color="#f4fbec"/></linearGradient></defs>' +
+      '<rect width="800" height="260" fill="url(#fsky)"/>' +
+      '<circle cx="702" cy="100" r="48" fill="#ffeaa9" opacity=".6"/>' +
+      '<circle cx="702" cy="100" r="30" fill="#ffd76b"/>' +
+      cloud(120, 104, 1) + cloud(368, 88, .72) + cloud(556, 116, .55) +
+      '<path d="M292 120 q9 -9 18 0 M318 110 q8 -8 16 0" stroke="#7b8b94" stroke-width="3" fill="none" stroke-linecap="round" opacity=".75"/>' +
+      '<path d="M0 172 Q110 124 232 160 Q334 190 434 152 Q546 110 656 156 Q734 188 800 156 L800 260 L0 260Z" fill="#a6d59a"/>' +
+      pine(58, 178, .62, 1) + pine(112, 186, .5, 1) + pine(742, 174, .6, 1) + pine(688, 186, .46, 1) +
+      '<path d="M0 206 Q140 166 300 200 Q440 230 580 196 Q700 168 800 194 L800 260 L0 260Z" fill="#7dc383"/>' +
+      '<path d="M0 234 Q150 216 320 232 Q480 248 640 228 Q730 218 800 230 L800 260 L0 260Z" fill="#5cae66"/>' +
+      pine(44, 252, .95) + pine(124, 256, .68) + roundTree(196, 252, .88) +
+      bush(288, 250, .8) + mushroom(244, 252, 1) + mushroom(264, 254, .75) +
+      fox(400, 250, 1) + owl(602, 250, 1) + bush(704, 252, .9) +
+      flower(336, 250, "#e86ba0") + flower(352, 252, "#f0a92e") +
+      flower(506, 248, "#b06be8") + flower(524, 250, "#e86ba0") + flower(678, 246, "#f0a92e") +
+      butterfly(304, 148, 1, "#e86ba0") + butterfly(474, 116, .8, "#b06be8"));
+  }
+  /* The band is framed xMidYMax slice, so a wide window crops it from the top —
+     roughly everything above y=55 can be gone. Hills and water may run off the
+     top edge (they are fills that reach the bottom anyway), but nothing with a
+     shape of its own is planted up there. */
+  function forestGround() {
+    return bandSvg(
+      '<path d="M0 92 Q140 56 300 88 Q450 118 600 84 Q760 48 920 86 Q1070 118 1200 82 L1200 160 L0 160Z" fill="#a6d59a" opacity=".9"/>' +
+      pine(70, 132, .62, 1) + pine(304, 120, .54, 1) + pine(1132, 130, .6, 1) +
+      '<path d="M0 118 Q160 96 340 116 Q520 136 700 112 Q880 88 1050 114 Q1130 126 1200 116 L1200 160 L0 160Z" fill="#7dc383"/>' +
+      pine(160, 152, .82) + roundTree(424, 154, .72) + pine(864, 152, .74) + roundTree(1032, 156, .6) +
+      '<path d="M0 142 Q200 128 420 142 Q640 156 860 138 Q1030 126 1200 140 L1200 160 L0 160Z" fill="#5cae66"/>' +
+      bush(600, 154, .7) + bush(724, 157, .6) + bush(262, 157, .55) + mushroom(520, 155, .8) +
+      flower(948, 152, "#e86ba0") + flower(968, 155, "#f0a92e") + flower(82, 154, "#b06be8"));
+  }
+
+  // -- ocean --
+  function fish(x, y, s, c, cls) {
+    var id = "fc" + (++uid);
+    return alive(cls, x, y, s,
+      '<defs><clipPath id="' + id + '"><ellipse cx="0" cy="0" rx="22" ry="14"/></clipPath></defs>' +
+      '<path d="M20 0 L40 -15 L40 15Z" fill="' + c + '"/>' +
+      '<path d="M-2 -13 q9 -13 15 -2Z" fill="' + c + '"/>' +
+      '<ellipse cx="0" cy="0" rx="22" ry="14" fill="' + c + '"/>' +
+      '<g clip-path="url(#' + id + ')" fill="#fff">' +
+      '<rect x="-13" y="-15" width="7" height="30" rx="2"/><rect x="4" y="-15" width="6" height="30" rx="2"/></g>' +
+      '<circle cx="-13" cy="-3" r="3.6" fill="#fff"/><circle cx="-14" cy="-3" r="2" fill="#2b2724"/>');
+  }
+  function turtle(x, y, s) {
+    return alive("swim", x, y, s,
+      '<ellipse cx="-34" cy="4" rx="13" ry="10" fill="#57b183"/>' +
+      '<circle cx="-40" cy="1" r="2.8" fill="#20402f"/>' +
+      '<ellipse cx="-14" cy="17" rx="12" ry="7" transform="rotate(28 -14 17)" fill="#4aa374"/>' +
+      '<ellipse cx="20" cy="16" rx="11" ry="6" transform="rotate(-25 20 16)" fill="#4aa374"/>' +
+      '<ellipse cx="-16" cy="-12" rx="11" ry="6" transform="rotate(-32 -16 -12)" fill="#4aa374"/>' +
+      '<ellipse cx="0" cy="0" rx="34" ry="24" fill="#3f9e6d" stroke="#2e7a53" stroke-width="3"/>' +
+      '<polygon points="0,-14 12,-6 8,8 -8,8 -12,-6" fill="#77c79b"/>' +
+      '<circle cx="-20" cy="-6" r="5" fill="#77c79b"/><circle cx="20" cy="-6" r="5" fill="#77c79b"/>' +
+      '<circle cx="-13" cy="14" r="4.5" fill="#77c79b"/><circle cx="13" cy="14" r="4.5" fill="#77c79b"/>');
+  }
+  function crab(x, y, s) {
+    return alive("float2", x, y, s,
+      '<path d="M-18 2 l-12 6 M18 2 l12 6 M-19 -3 l-13 -1 M19 -3 l13 -1" stroke="#c9432f" stroke-width="3.5" stroke-linecap="round"/>' +
+      '<path d="M-20 -10 q-15 -9 -19 2 q9 8 15 2Z" fill="#e0574a"/>' +
+      '<path d="M20 -10 q15 -9 19 2 q-9 8 -15 2Z" fill="#e0574a"/>' +
+      '<ellipse cx="0" cy="-4" rx="20" ry="13" fill="#e0574a"/>' +
+      '<circle cx="-7" cy="-16" r="4.6" fill="#fff"/><circle cx="7" cy="-16" r="4.6" fill="#fff"/>' +
+      '<circle cx="-7" cy="-16" r="2.2" fill="#2b2724"/><circle cx="7" cy="-16" r="2.2" fill="#2b2724"/>' +
+      '<path d="M-6 -2 q6 5 12 0" stroke="#8f2f22" stroke-width="2.5" fill="none" stroke-linecap="round"/>');
+  }
+  function starfish(x, y, s, c) {
+    return '<g transform="translate(' + x + ',' + y + ') scale(' + s + ')">' +
+      '<polygon points="0,-16 4.7,-5 16,-5 7,2.5 10.5,14 0,7 -10.5,14 -7,2.5 -16,-5 -4.7,-5" fill="' + c + '"/>' +
+      '<circle cx="0" cy="-1" r="2.2" fill="#fff" opacity=".65"/></g>';
+  }
+  function kelp(x, y, h, cls) {
+    return '<path class="' + cls + '" d="M' + x + ' ' + y + ' q-16 -' + (h * .3).toFixed(0) +
+      ' 2 -' + (h * .6).toFixed(0) + ' q16 -' + (h * .3).toFixed(0) + ' 0 -' + h +
+      '" stroke="#2f9c6a" stroke-width="9" fill="none" stroke-linecap="round"/>';
+  }
+  function coral(x, y, s, c) {
+    return '<g transform="translate(' + x + ',' + y + ') scale(' + s + ')" stroke="' + c +
+      '" stroke-width="8" fill="none" stroke-linecap="round">' +
+      '<path d="M0 0 L0 -28"/><path d="M0 -14 q-14 -4 -17 -23"/><path d="M0 -19 q14 -6 18 -25"/></g>';
+  }
+  function bubbles(x, y, cls) {
+    return '<g class="' + cls + '" fill="none" stroke="#fff" stroke-width="2" opacity=".75">' +
+      '<circle cx="' + x + '" cy="' + y + '" r="6"/><circle cx="' + (x + 11) + '" cy="' + (y - 20) + '" r="4"/>' +
+      '<circle cx="' + (x - 6) + '" cy="' + (y - 36) + '" r="3"/></g>';
+  }
+
+  function oceanBanner() {
+    return sceneSvg(
+      '<defs><linearGradient id="osea" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#6fd0ec"/><stop offset=".55" stop-color="#2f9ccb"/>' +
+      '<stop offset="1" stop-color="#1d6ea8"/></linearGradient></defs>' +
+      '<rect width="800" height="260" fill="url(#osea)"/>' +
+      '<g fill="#fff" opacity=".12"><path d="M120 0 L192 0 L124 260 L58 260Z"/>' +
+      '<path d="M330 0 L374 0 L322 260 L280 260Z"/><path d="M596 0 L668 0 L620 260 L554 260Z"/></g>' +
+      '<path d="M0 40 L800 40 L800 76 Q740 96 680 78 Q600 58 520 78 Q440 98 360 78 Q280 58 200 78 Q120 98 40 80 Q18 74 0 78Z" fill="#c6f0fc" opacity=".9"/>' +
+      '<g opacity=".22" transform="translate(168,124)">' +
+      '<ellipse cx="0" cy="0" rx="72" ry="26" fill="#0d4d78"/>' +
+      '<path d="M64 0 l32 -22 l-6 22 l6 22Z" fill="#0d4d78"/>' +
+      '<circle cx="-48" cy="-6" r="4" fill="#eaf6fb"/></g>' +
+      '<path d="M0 214 Q130 194 250 212 Q392 234 520 208 Q662 180 800 210 L800 260 L0 260Z" fill="#f3e0b8"/>' +
+      '<ellipse cx="92" cy="240" rx="30" ry="13" fill="#cbb99a"/><ellipse cx="604" cy="236" rx="26" ry="12" fill="#cbb99a"/>' +
+      kelp(70, 252, 108, "sway") + kelp(98, 254, 78, "sway2") +
+      kelp(744, 250, 96, "sway") + kelp(716, 254, 66, "sway2") +
+      coral(300, 240, 1, "#f4816f") + coral(344, 246, .8, "#f0a92e") + coral(520, 234, .9, "#e86ba0") +
+      starfish(152, 236, 1.1, "#f2822f") + starfish(468, 244, .8, "#e86ba0") + crab(662, 230, 1) +
+      turtle(214, 152, 1) +
+      fish(556, 108, 1, "#f2822f", "swim") + fish(646, 162, .75, "#f0a92e", "swim2") +
+      fish(432, 186, .6, "#ffd76b", "swim") +
+      bubbles(252, 202, "float") + bubbles(500, 148, "float2") + bubbles(120, 174, "float"));
+  }
+  function oceanGround() {
+    return bandSvg(
+      '<path d="M0 40 Q100 20 200 38 Q300 56 400 36 Q500 16 600 36 Q700 56 800 38 Q900 20 1000 38 Q1100 56 1200 36 L1200 160 L0 160Z" fill="#8adcf2" opacity=".55"/>' +
+      '<path d="M0 64 Q150 46 300 64 Q450 82 600 62 Q750 42 900 62 Q1050 82 1200 62 L1200 160 L0 160Z" fill="#3aa8d4" opacity=".75"/>' +
+      fish(232, 96, .5, "#ffd76b", "swim2") + fish(566, 102, .62, "#f2822f", "swim") +
+      bubbles(662, 128, "float") +
+      kelp(92, 158, 72, "sway") + kelp(120, 158, 54, "sway2") +
+      kelp(1092, 158, 70, "sway") + kelp(1118, 158, 48, "sway2") +
+      '<path d="M0 128 Q160 112 340 126 Q520 140 700 122 Q880 106 1060 124 Q1140 132 1200 126 L1200 160 L0 160Z" fill="#f3e0b8"/>' +
+      coral(402, 150, .8, "#f4816f") + coral(762, 148, .7, "#e86ba0") +
+      starfish(300, 148, .9, "#f2822f") + crab(884, 142, .7));
+  }
+
+  // -- deep space --
+  function planet(x, y, r, c1, c2, ring) {
+    var g = '<g transform="translate(' + x + ',' + y + ')">' +
+      '<circle cx="0" cy="0" r="' + r + '" fill="' + c1 + '"/>' +
+      '<ellipse cx="' + (-r * .3) + '" cy="' + (-r * .35) + '" rx="' + (r * .3) + '" ry="' + (r * .2) + '" fill="' + c2 + '" opacity=".7"/>' +
+      '<ellipse cx="' + (r * .34) + '" cy="' + (r * .26) + '" rx="' + (r * .34) + '" ry="' + (r * .22) + '" fill="' + c2 + '" opacity=".55"/>';
+    if (ring) g += '<ellipse cx="0" cy="0" rx="' + (r * 1.75) + '" ry="' + (r * .42) + '" fill="none" stroke="' + ring +
+      '" stroke-width="' + (r * .16) + '" opacity=".9" transform="rotate(-18)"/>';
+    return g + '</g>';
+  }
+  function rocket(x, y, s) {
+    return alive("float", x, y, s,
+      '<path class="flame" d="M-11 34 q11 30 11 34 q0 -4 11 -34Z" fill="#ffb845"/>' +
+      '<path class="flame" d="M-6 34 q6 20 6 24 q0 -4 6 -24Z" fill="#ffe08a"/>' +
+      '<path d="M-16 36 q-16 -6 -14 -26 q10 6 14 14Z" fill="#e0574a"/>' +
+      '<path d="M16 36 q16 -6 14 -26 q-10 6 -14 14Z" fill="#e0574a"/>' +
+      '<path d="M0 -46 q17 24 17 52 l0 30 l-34 0 l0 -30 q0 -28 17 -52Z" fill="#f4f2f8"/>' +
+      '<path d="M0 -46 q17 24 17 52 l-17 0Z" fill="#ddd8e8"/>' +
+      '<circle cx="0" cy="8" r="11" fill="#7fd3ef" stroke="#b9b4c8" stroke-width="3.5"/>' +
+      '<rect x="-17" y="26" width="34" height="9" rx="3" fill="#e0574a"/>');
+  }
+  function saucer(x, y, s) {
+    return alive("float2", x, y, s,
+      '<path d="M-6 -22 l-5 -8 M6 -22 l5 -8" stroke="#8ed98a" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<circle cx="-11" cy="-31" r="2.8" fill="#8ed98a"/><circle cx="11" cy="-31" r="2.8" fill="#8ed98a"/>' +
+      '<ellipse cx="0" cy="-11" rx="10" ry="12" fill="#8ed98a"/>' +
+      '<ellipse cx="-4" cy="-13" rx="2.6" ry="3.6" transform="rotate(-15 -4 -13)" fill="#2b2724"/>' +
+      '<ellipse cx="4" cy="-13" rx="2.6" ry="3.6" transform="rotate(15 4 -13)" fill="#2b2724"/>' +
+      '<path d="M-22 -4 a22 21 0 0 1 44 0Z" fill="#9fe6ff" opacity=".55"/>' +
+      '<ellipse cx="0" cy="0" rx="44" ry="12" fill="#b9c2d6"/>' +
+      '<ellipse cx="0" cy="-3" rx="44" ry="8" fill="#8e99b3"/>' +
+      '<circle cx="-28" cy="4" r="4" fill="#ffd76b"/><circle cx="0" cy="6" r="4" fill="#ff9ad2"/>' +
+      '<circle cx="28" cy="4" r="4" fill="#7fd3ef"/>');
+  }
+
+  function spaceBanner() {
+    return sceneSvg(
+      '<defs><linearGradient id="ssky" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#1d1449"/><stop offset=".6" stop-color="#43277a"/>' +
+      '<stop offset="1" stop-color="#6b3f96"/></linearGradient></defs>' +
+      '<rect width="800" height="260" fill="url(#ssky)"/>' +
+      '<g transform="translate(0,62)">' + starField(46, 800, 150) + '</g>' +
+      '<g><path d="M124 96 L36 134" stroke="#ffe08a" stroke-width="4" stroke-linecap="round" opacity=".45"/>' +
+      '<circle cx="130" cy="93" r="7" fill="#ffe08a"/></g>' +
+      planet(672, 112, 38, "#f0a24b", "#d9822f", "#ffd9a0") +
+      planet(88, 168, 18, "#9fb6e8", "#7d95cc", null) +
+      saucer(250, 116, 1) + rocket(472, 134, 1) +
+      '<path d="M0 214 Q140 184 300 208 Q450 232 610 202 Q720 182 800 206 L800 260 L0 260Z" fill="#7c5aa8"/>' +
+      '<path d="M0 234 Q160 212 320 232 Q480 250 640 226 Q730 214 800 228 L800 260 L0 260Z" fill="#5f4285"/>' +
+      '<ellipse cx="140" cy="240" rx="26" ry="8" fill="#4d356e" opacity=".85"/>' +
+      '<ellipse cx="404" cy="248" rx="34" ry="9" fill="#4d356e" opacity=".7"/>' +
+      '<ellipse cx="694" cy="240" rx="22" ry="7" fill="#4d356e" opacity=".85"/>' +
+      '<g transform="translate(566,234)"><path d="M0 0 L0 -36" stroke="#e7e2f2" stroke-width="3" stroke-linecap="round"/>' +
+      '<path d="M2 -36 l24 8 l-24 8Z" fill="#e0574a"/></g>');
+  }
+  function spaceGround() {
+    return bandSvg(
+      '<path d="M0 56 Q150 28 320 52 Q500 78 680 48 Q860 20 1030 50 Q1120 66 1200 48 L1200 160 L0 160Z" fill="#43277a"/>' +
+      '<g transform="translate(0,72)">' + starField(20, 1200, 66) + '</g>' +
+      planet(150, 76, 14, "#f0a24b", "#d9822f", "#ffd9a0") + rocket(1012, 84, .44) +
+      '<path d="M0 104 Q170 82 350 102 Q540 122 720 98 Q900 74 1060 100 Q1140 112 1200 100 L1200 160 L0 160Z" fill="#7c5aa8"/>' +
+      '<path d="M0 132 Q200 114 420 130 Q640 146 860 126 Q1040 110 1200 130 L1200 160 L0 160Z" fill="#5f4285"/>' +
+      '<ellipse cx="240" cy="148" rx="34" ry="9" fill="#4d356e"/>' +
+      '<ellipse cx="700" cy="152" rx="42" ry="10" fill="#4d356e"/>' +
+      '<ellipse cx="1044" cy="146" rx="28" ry="8" fill="#4d356e"/>');
+  }
+
+  var SCENES = {
+    1: { banner: forestBanner, ground: forestGround },
+    2: { banner: oceanBanner,  ground: oceanGround },
+    3: { banner: spaceBanner,  ground: spaceGround }
+  };
+
+  /* Little round portraits for the world picker. */
+  var ICONS = {
+    1: '<svg viewBox="0 0 48 48" aria-hidden="true"><defs><clipPath id="ic1"><circle cx="24" cy="24" r="23"/></clipPath></defs>' +
+       '<circle cx="24" cy="24" r="23" fill="#d9eef7"/><g clip-path="url(#ic1)">' +
+       '<circle cx="38" cy="11" r="6" fill="#ffd76b"/>' +
+       '<path d="M0 34 q12 -9 24 -1 q12 8 24 -1 L48 48 L0 48Z" fill="#7dc383"/>' +
+       '<rect x="21" y="30" width="6" height="12" rx="2" fill="#8a5c3c"/>' +
+       '<path d="M24 6 L34 23 L14 23Z" fill="#4f9c5e"/><path d="M24 15 L37 34 L11 34Z" fill="#3d7a4c"/>' +
+       '<path d="M0 42 q12 -5 24 0 q12 5 24 0 L48 48 L0 48Z" fill="#5cae66"/></g></svg>',
+    2: '<svg viewBox="0 0 48 48" aria-hidden="true"><defs><clipPath id="ic2"><circle cx="24" cy="24" r="23"/></clipPath></defs>' +
+       '<circle cx="24" cy="24" r="23" fill="#6fd0ec"/><g clip-path="url(#ic2)">' +
+       '<path d="M0 0 L48 0 L48 9 Q36 16 24 9 Q12 2 0 9Z" fill="#c6f0fc"/>' +
+       '<path d="M0 30 Q24 20 48 30 L48 48 L0 48Z" fill="#2f9ccb"/>' +
+       '<g transform="translate(22,22) scale(.5)">' +
+       '<path d="M20 0 L40 -15 L40 15Z" fill="#f2822f"/><ellipse cx="0" cy="0" rx="22" ry="14" fill="#f2822f"/>' +
+       '<rect x="-13" y="-11" width="7" height="22" rx="2" fill="#fff"/><rect x="4" y="-13" width="6" height="24" rx="2" fill="#fff"/>' +
+       '<circle cx="-13" cy="-3" r="3.6" fill="#fff"/><circle cx="-14" cy="-3" r="2" fill="#2b2724"/></g>' +
+       '<path d="M8 48 q-6 -12 2 -20" stroke="#2f9c6a" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+       '<path d="M42 48 q6 -10 -1 -17" stroke="#2f9c6a" stroke-width="5" fill="none" stroke-linecap="round"/></g></svg>',
+    3: '<svg viewBox="0 0 48 48" aria-hidden="true"><defs><clipPath id="ic3"><circle cx="24" cy="24" r="23"/></clipPath></defs>' +
+       '<circle cx="24" cy="24" r="23" fill="#2b1c5e"/><g clip-path="url(#ic3)">' +
+       '<circle cx="9" cy="10" r="1.8" fill="#fff"/><circle cx="38" cy="34" r="1.6" fill="#fff"/>' +
+       '<circle cx="15" cy="38" r="1.4" fill="#fff"/><circle cx="34" cy="8" r="1.5" fill="#fff"/>' +
+       '<circle cx="24" cy="4" r="1.3" fill="#fff"/><circle cx="5" cy="26" r="1.3" fill="#fff"/>' +
+       '<circle cx="22" cy="23" r="12" fill="#f0a24b"/>' +
+       '<ellipse cx="16" cy="18" rx="4" ry="2.6" fill="#d9822f"/><ellipse cx="27" cy="28" rx="4.5" ry="3" fill="#d9822f"/>' +
+       '<ellipse cx="22" cy="23" rx="21" ry="5" fill="none" stroke="#ffd9a0" stroke-width="2.4" transform="rotate(-18 22 23)"/></g></svg>'
+  };
+
+  /* The world is repainted only when it actually changes — tapping a week
+     shouldn't restart the fox's breathing. */
+  var painted = null;
+  function applyWorld() {
+    var w = state.world;
+    document.body.classList.remove("w-forest", "w-ocean", "w-space");
+    document.body.classList.add(WORLDS[w].css);
+    if (painted === w) return;
+    painted = w;
+    $("ground").innerHTML = SCENES[w].ground();
+    $("worldScene").innerHTML = SCENES[w].banner();
   }
 
   // ---------- storage ----------
@@ -784,6 +1272,7 @@
 
   // ---------- who ----------
   function buildWho() {
+    applyWorld();
     $("pipWho").innerHTML = pip("hi");
     var all = loadAll(), names = Object.keys(all.students).sort();
     var list = $("whoList"); list.innerHTML = "";
@@ -824,7 +1313,7 @@
   function goHome() { cancelPending(); show("s-home"); buildHome(); }
 
   function buildHome() {
-    document.body.className = WORLDS[state.world].css;
+    applyWorld();
     $("pipHome").innerHTML = pip("hi");
     $("homeMsg").textContent = state.week === null
       ? "Hello " + state.who + "! Pick a week to practise."
@@ -836,8 +1325,8 @@
     var tabs = $("worldTabs"); tabs.innerHTML = "";
     [1,2,3].forEach(function (i) {
       var b = document.createElement("button");
-      b.className = "btn world-tab" + (i === state.world ? " on" : "");
-      b.textContent = WORLDS[i].name;
+      b.className = "wcard w" + i + (i === state.world ? " on" : "");
+      b.innerHTML = ICONS[i] + '<span class="wname">' + WORLDS[i].short + '</span>';
       b.addEventListener("click", function () { state.world = i; state.week = null; buildHome(); });
       tabs.appendChild(b);
     });
@@ -1472,6 +1961,10 @@
     ["s-who","s-home","s-play","s-done"].forEach(function (s) {
       $(s).classList.toggle("hidden", s !== id);
     });
+    /* Mid-round the scenery fades back. The world is a reward and a place to
+       be, but nothing decorative should compete with the word being read. */
+    document.body.classList.toggle("playing", id === "s-play");
+    document.body.classList.toggle("at-home", id === "s-home");
     window.scrollTo(0,0);
   }
 
