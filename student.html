@@ -882,6 +882,11 @@
     fetch(url, {
       method: "POST",
       mode: "no-cors",
+      /* Send the Chromebook's Google sign-in along. A cross-origin request
+         leaves it behind by default, which is invisible while the Web App is
+         open to anyone and fatal the moment it's restricted to the board —
+         every round would be turned away silently. Harmless either way. */
+      credentials: "include",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ rounds: q })
     }).then(function () {
