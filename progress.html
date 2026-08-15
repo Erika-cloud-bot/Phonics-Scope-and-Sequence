@@ -287,18 +287,32 @@
     document.head.appendChild(script);
   }
 
-  /* Rows into the same shape as local storage. Sending is fire-and-forget, so
-     a round can occasionally land twice — drop repeats on the way in. */
+  /* Rows into the same shape as local storage. A round can occasionally be
+     sent twice, so repeats are dropped on the way in — but only genuine
+     repeats.
+
+     Each round now carries an id made on the Chromebook, and that is what a
+     repeat shares. Matching on date and score instead, as this used to, threw
+     away the second time a child did the same activity in a day and got the
+     same mark — which is ordinary practice, not a duplicate, and it hid the
+     students who practised most. Rows from before ids existed fall back to
+     the moment they arrived, which at least keeps them apart. */
+  function roundKey(r) {
+    var name = String(r.student || "").trim();
+    return r.id ? "id|" + r.id
+                : [name, r.d, r.w, r.a, r.r, r.t, r.received || ""].join("|");
+  }
+
   function groupRounds(rows) {
     var students = {}, seen = {};
     rows.forEach(function (r) {
       var name = String(r.student || "").trim();
       if (!name) return;
-      var key = [name, r.d, r.w, r.a, r.r, r.t].join("|");
+      var key = roundKey(r);
       if (seen[key]) return;
       seen[key] = true;
       if (!students[name]) students[name] = { stars:0, rounds:[], level:r.level || "mixed" };
-      students[name].rounds.push({ d:r.d, w:r.w, a:r.a, r:Number(r.r)||0,
+      students[name].rounds.push({ id:r.id || "", d:r.d, w:r.w, a:r.a, r:Number(r.r)||0,
                                    t:Number(r.t)||0, s:Number(r.s)||0,
                                    l:r.level, tricky:r.tricky || [] });
       students[name].stars += Number(r.s) || 0;
@@ -445,9 +459,15 @@
     p.style.display = p.style.display === "none" ? "block" : "none";
   });
 
-  /* Merge one backup into what's already here. Rounds are matched on
-     date+week+activity+score, so re-merging the same file adds nothing.
+  /* Merge one backup into what's already here. Rounds are matched on their id,
+     so re-merging the same file adds nothing while two genuine attempts at the
+     same activity both survive. Backups written before ids existed fall back
+     to date+week+activity+score, which is all they have.
      Returns how many rounds were genuinely new. */
+  function backupKey(r) {
+    return r.id ? "id|" + r.id : [r.d, r.w, r.a, r.r, r.t].join("|");
+  }
+
   function mergeInto(incoming) {
     if (!incoming || !incoming.students) throw new Error("no students");
     var data = load(), added = 0;
@@ -456,9 +476,9 @@
       if (!data.students[n]) data.students[n] = { stars:0, rounds:[], level: inc.level || "core" };
       else if (!data.students[n].level && inc.level) data.students[n].level = inc.level;
       var mine = data.students[n], seen = {};
-      mine.rounds.forEach(function (r) { seen[r.d+"|"+r.w+"|"+r.a+"|"+r.r+"|"+r.t] = true; });
+      mine.rounds.forEach(function (r) { seen[backupKey(r)] = true; });
       (inc.rounds||[]).forEach(function (r) {
-        var k = r.d+"|"+r.w+"|"+r.a+"|"+r.r+"|"+r.t;
+        var k = backupKey(r);
         if (!seen[k]) { mine.rounds.push(r); mine.stars += (r.s||0); seen[k] = true; added++; }
       });
       mine.rounds.sort(function (a,b) { return a.d < b.d ? -1 : 1; });
