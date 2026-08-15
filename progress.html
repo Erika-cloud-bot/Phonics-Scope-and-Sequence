@@ -297,31 +297,59 @@
      same mark — which is ordinary practice, not a duplicate, and it hid the
      students who practised most. Rows from before ids existed fall back to
      the moment they arrived, which at least keeps them apart. */
+  /* One child, one card. Rounds arrive from every Chromebook in the room and
+     the name is the only thing tying them together, so "Jacob", "jacob" and
+     "Jacob " have to be recognised as the same reader — otherwise a child who
+     types their name differently on Tuesday appears twice, each with half
+     their work.
+
+     Two children genuinely called Jacob still can't be told apart. Give them
+     different names on the class list — Jacob M. and Jacob R. */
+  function tidyName(n) { return String(n || "").trim().replace(/\s+/g, " "); }
+  function nameKey(n) { return tidyName(n).toLowerCase(); }
+  function findReader(students, typed) {
+    var k = nameKey(typed);
+    if (!k) return null;
+    var hit = Object.keys(students).filter(function (n) { return nameKey(n) === k; });
+    return hit.length ? hit[0] : null;
+  }
+
   function roundKey(r) {
-    var name = String(r.student || "").trim();
     return r.id ? "id|" + r.id
-                : [name, r.d, r.w, r.a, r.r, r.t, r.received || ""].join("|");
+                : [nameKey(r.student), r.d, r.w, r.a, r.r, r.t, r.received || ""].join("|");
   }
 
   function groupRounds(rows) {
-    var students = {}, seen = {};
+    var students = {}, seen = {}, spellings = {};
     rows.forEach(function (r) {
-      var name = String(r.student || "").trim();
-      if (!name) return;
-      var key = roundKey(r);
-      if (seen[key]) return;
-      seen[key] = true;
-      if (!students[name]) students[name] = { stars:0, rounds:[], level:r.level || "mixed" };
-      students[name].rounds.push({ id:r.id || "", d:r.d, w:r.w, a:r.a, r:Number(r.r)||0,
-                                   t:Number(r.t)||0, s:Number(r.s)||0,
-                                   l:r.level, tricky:r.tricky || [] });
-      students[name].stars += Number(r.s) || 0;
-      if (r.level) students[name].level = r.level;
+      var shown = tidyName(r.student), key = nameKey(shown);
+      if (!key) return;
+      var rk = roundKey(r);
+      if (seen[rk]) return;
+      seen[rk] = true;
+
+      /* Whichever spelling the child used most is the one worth showing. */
+      spellings[key] = spellings[key] || {};
+      spellings[key][shown] = (spellings[key][shown] || 0) + 1;
+
+      if (!students[key]) students[key] = { stars:0, rounds:[], level:r.level || "mixed" };
+      students[key].rounds.push({ id:r.id || "", d:r.d, w:r.w, a:r.a, r:Number(r.r)||0,
+                                  t:Number(r.t)||0, s:Number(r.s)||0,
+                                  l:r.level, tricky:r.tricky || [] });
+      students[key].stars += Number(r.s) || 0;
+      if (r.level) students[key].level = r.level;
     });
-    Object.keys(students).forEach(function (n) {
-      students[n].rounds.sort(function (a,b) { return a.d < b.d ? -1 : 1; });
+
+    var out = {};
+    Object.keys(students).forEach(function (key) {
+      students[key].rounds.sort(function (a,b) { return a.d < b.d ? -1 : 1; });
+      var counts = spellings[key];
+      var best = Object.keys(counts).sort(function (a,b) {
+        return counts[b] - counts[a] || a.localeCompare(b);
+      })[0];
+      out[best] = students[key];
     });
-    return { students: students };
+    return { students: out };
   }
 
   $("saveSync").addEventListener("click", function () {
@@ -423,13 +451,13 @@
   $("viewClass").addEventListener("click", function () { if (classData) { view = "class"; render(); } });
 
   $("addStudent").addEventListener("click", function () {
-    var name = $("newStudent").value.trim(), msg = $("addMsg");
+    var name = tidyName($("newStudent").value), msg = $("addMsg");
     if (!name) { msg.textContent = "Type a name first."; msg.className = "sub warn"; return; }
-    var d = load();
-    if (d.students[name]) {
+    var d = load(), already = findReader(d.students, name);
+    if (already) {
       // Don't clobber an existing reader's rounds — just set their level.
-      d.students[name].level = $("newLevel").value;
-      msg.textContent = name + " already here — level updated.";
+      d.students[already].level = $("newLevel").value;
+      msg.textContent = already + " already here — level updated.";
     } else {
       d.students[name] = { stars:0, rounds:[], level:$("newLevel").value };
       msg.textContent = name + " added.";
@@ -471,8 +499,12 @@
   function mergeInto(incoming) {
     if (!incoming || !incoming.students) throw new Error("no students");
     var data = load(), added = 0;
-    Object.keys(incoming.students).forEach(function (n) {
-      var inc = incoming.students[n];
+    Object.keys(incoming.students).forEach(function (raw) {
+      var inc = incoming.students[raw];
+      /* Backups come from different Chromebooks, where the same child may have
+         typed their name differently. Fold them into one reader. */
+      var n = findReader(data.students, raw) || tidyName(raw);
+      if (!n) return;
       if (!data.students[n]) data.students[n] = { stars:0, rounds:[], level: inc.level || "core" };
       else if (!data.students[n].level && inc.level) data.students[n].level = inc.level;
       var mine = data.students[n], seen = {};

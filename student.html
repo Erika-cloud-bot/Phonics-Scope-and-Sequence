@@ -1344,6 +1344,16 @@
   function sayBtn(w) { return canSpeak ? '<button class="btn say" data-say="'+w+'">🔊 Hear it</button>' : ""; }
 
   // ---------- who ----------
+  /* One child, one spelling. Trailing spaces, double spaces and capitals are
+     all noise from a keyboard, never a different reader. */
+  function tidyName(n) { return String(n || "").trim().replace(/\s+/g, " "); }
+  function nameKey(n) { return tidyName(n).toLowerCase(); }
+  function findReader(students, typed) {
+    var k = nameKey(typed);
+    var hit = Object.keys(students).filter(function (n) { return nameKey(n) === k; });
+    return hit.length ? hit[0] : null;
+  }
+
   function buildWho() {
     applyWorld();
     $("pipWho").innerHTML = pip("hi");
@@ -1361,12 +1371,19 @@
       '<input class="name-input" id="newName" placeholder="Type your name" maxlength="24">' +
       '<button class="btn primary block" id="addName" style="max-width:320px">Start</button>';
     $("addName").addEventListener("click", function () {
-      var n = $("newName").value.trim();
+      var n = tidyName($("newName").value);
       if (!n) return;
       var d = loadAll();
+      /* An eight-year-old typing their own name each morning will not type it
+         the same way twice. "Jacob", "jacob" and "jacob  M" used to become
+         three readers with three sets of stars, and three cards on the
+         teacher's page. Anyone already here wins, whatever the capitals. */
+      var already = findReader(d.students, n);
+      if (already) { pickReader(already); return; }
       // A reader who types their own name starts on core; the teacher can
       // change it later on the progress page.
-      if (!d.students[n]) { d.students[n] = { stars:0, rounds:[], level:"core" }; saveAll(d); }
+      d.students[n] = { stars:0, rounds:[], level:"core" };
+      saveAll(d);
       pickReader(n);
     });
     $("newName").addEventListener("keydown", function (e) { if (e.key === "Enter") $("addName").click(); });
