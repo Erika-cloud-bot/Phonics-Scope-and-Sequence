@@ -872,13 +872,68 @@
     try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q.slice(-200))); } catch (e) {}
   }
 
-  /* Apps Script doesn't return cross-origin headers a browser will accept on
-     POST, so this is deliberately fire-and-forget: no-cors means we can't read
-     the reply. A genuine network failure still rejects, which is the case that
-     matters — that's when the round needs to wait for wifi. */
+  /* Every round carries an id of its own, made here on the device. It is what
+     lets the Sheet tell a round that was sent twice from a child who genuinely
+     did the same activity twice and scored the same — which happens all the
+     time, and used to be silently discarded. */
+  function roundId() {
+    return deviceName() + "-" + Date.now().toString(36) +
+           "-" + Math.random().toString(36).slice(2, 7);
+  }
+
+  /* Ask the Sheet a small question and read the answer. A plain cross-origin
+     request to Apps Script can't be read back, so load it as a script instead —
+     the same trick the teacher's progress page uses. */
+  function ask(url, done) {
+    var name = "phonicsAck" + Math.random().toString(36).slice(2, 9);
+    var script = document.createElement("script");
+    var settled = false;
+    var timer = setTimeout(function () { finish(null); }, 20000);
+    function finish(data) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { delete window[name]; } catch (e) { window[name] = undefined; }
+      if (script.parentNode) script.parentNode.removeChild(script);
+      done(data);
+    }
+    window[name] = function (data) { finish(data); };
+    script.onerror = function () { finish(null); };
+    script.src = url + (url.indexOf("?") > -1 ? "&" : "?") + "callback=" + name + "&_=" + Date.now();
+    document.head.appendChild(script);
+  }
+
+  /* Sending is a POST we can't read the reply to — no-cors means the browser
+     hands back a blank response whether the Sheet took the rounds or turned
+     them away. Treating that blank as success is how rounds used to vanish:
+     a Web App that rejects the request answers with a sign-in redirect, which
+     looks exactly like success from here.
+
+     So the send is only half the job. Afterwards we ask the Sheet which round
+     ids it actually holds, and only those leave the queue. Anything else waits
+     and goes again with the next round. Sending twice is harmless now — the
+     id makes the repeat recognisable at the other end.
+
+     Only ids go in that question, never names: an address can end up in a log
+     in a way a request body does not. */
+  var TRIES = 5;
+  var flushing = false;
   function flushQueue() {
-    var url = syncUrl(), q = readQueue();
-    if (!url || !q.length || !window.fetch) return;
+    var url = syncUrl(), all = readQueue();
+    if (!url || !all.length || !window.fetch || flushing) return;
+
+    /* If the Sheet takes rounds but its answers never get back to us, every
+       flush would send the same rounds again for the rest of the year. Give
+       up sending after a few goes — the round stays in the queue rather than
+       being destroyed, and the copy on this device is untouched either way. */
+    var q = all.filter(function (r) { return (r.n || 0) < TRIES; });
+    if (!q.length) return;
+    q.forEach(function (r) { r.n = (r.n || 0) + 1; });
+    writeQueue(all);
+
+    flushing = true;
+    var sent = q.map(function (r) { return r.id; }).filter(Boolean);
+
     fetch(url, {
       method: "POST",
       mode: "no-cors",
@@ -890,8 +945,20 @@
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ rounds: q })
     }).then(function () {
-      writeQueue([]);          // assume delivered; duplicates are harmless
+      if (!sent.length) { flushing = false; return; }
+      var q1 = url.indexOf("?") > -1 ? "&" : "?";
+      ask(url + q1 + "have=" + encodeURIComponent(sent.join(",")), function (res) {
+        flushing = false;
+        if (!res || !res.ok || !res.have) return;   // no answer: keep them queued
+        var landed = {};
+        res.have.forEach(function (id) { landed[id] = true; });
+        /* Re-read rather than reusing q — a child can finish another round
+           while this is in the air, and it must not be thrown out with the
+           batch that has just been confirmed. */
+        writeQueue(readQueue().filter(function (r) { return !landed[r.id]; }));
+      });
     }).catch(function () {
+      flushing = false;
       /* leave it queued and try again after the next round */
     });
   }
@@ -901,6 +968,7 @@
     var q = readQueue();
     q.push({
       student: state.who, level: state.level, device: deviceName(),
+      id: round.id,
       d: round.d, w: round.w, a: round.a, r: round.r, t: round.t,
       s: round.s, tricky: round.tricky
     });
@@ -1916,7 +1984,8 @@
     var total = state.queue.length, pct = total ? state.right/total : 0;
     var stars = pct >= .9 ? 3 : pct >= .7 ? 2 : pct >= .4 ? 1 : 0;
 
-    var round = { d: new Date().toISOString().slice(0,10), w: state.week,
+    var round = { id: roundId(),
+                  d: new Date().toISOString().slice(0,10), w: state.week,
                   a: state.activity, r: state.right, t: total, s: stars,
                   l: state.level, tricky: state.tricky.slice(0,20) };
     record(round);      // this device, always

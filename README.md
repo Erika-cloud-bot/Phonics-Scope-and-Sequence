@@ -258,11 +258,15 @@ Tick **Keep updating** next to that button and the page refreshes itself every 3
 
 **"Who has access: Anyone" is required.** Students aren't signing in to anything, so the script has to accept unauthenticated writes. The address is long and random, so nobody finds it by guessing — but anyone who *has* it could write rows into your Sheet. That's why the address isn't in this public repository, and why it's passed on the link instead. It's a phonics sheet, so the realistic risk is low, but you should know it rather than find out.
 
-**Nothing depends on wifi.** Rounds always save to the Chromebook first. If the send fails, the round waits in a queue and goes out with the next one, or next time the app opens. Bad wifi delays the Sheet; it never loses a round.
+**Nothing depends on wifi.** Rounds always save to the Chromebook first. If the send fails, the round waits in a queue and goes out with the next one, or next time the app opens. A round only leaves the queue once the Sheet has confirmed it holds it — so a send that is turned away, not just a send that times out, is retried rather than lost. Bad wifi delays the Sheet; it never loses a round.
+
+After several unanswered attempts a round stops being re-sent, so a persistently broken connection can't fill the Sheet with copies. It stays in the queue and stays on the Chromebook; nothing is thrown away.
 
 **If you change `Code.gs` later**, you must deploy again — **Deploy → Manage deployments → edit (pencil) → Version: New version → Deploy**. Editing the code alone changes nothing on the live address; this catches everybody out once.
 
-**The Sheet may pick up the odd duplicate row.** Sending is deliberately fire-and-forget, so a round can occasionally be sent twice. The progress page ignores repeats when it reads them back, so your totals stay right.
+**The Sheet may pick up the odd duplicate row.** A round can occasionally be sent twice. Every round carries an id made on the Chromebook, and a repeat carries the same one, so the progress page ignores it when reading back. Two genuine attempts at the same activity have different ids and are both counted — including when a child does the same activity twice in a day and gets the same mark.
+
+**If your Sheet already has rounds in it**, the `Round id` column is added automatically the next time the script runs; you don't have to touch the spreadsheet. Rows collected before then have no id, and are told apart by the time they arrived instead.
 
 **The class view is read-only.** Word levels and removing a reader still work on the *This device* view — the Sheet is a report of what happened, not something to edit.
 
