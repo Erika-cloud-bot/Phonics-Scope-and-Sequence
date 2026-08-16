@@ -268,6 +268,8 @@ After several unanswered attempts a round stops being re-sent, so a persistently
 
 **If your Sheet already has rounds in it**, the `Round id` column is added automatically the next time the script runs; you don't have to touch the spreadsheet. Rows collected before then have no id, and are told apart by the time they arrived instead.
 
+**You can see whether results are getting through.** The sign-in screen on each Chromebook carries a small grey line at the bottom — *Results sent ✓*, or how many rounds are still waiting. It turns red if that Chromebook isn't set up to send at all, or has given up trying. Walking the room and glancing at the bottom of each screen tells you the sync is healthy without opening anything. On your own page, the line beside **Load whole class** now also says when the newest round arrived, so a class view full of last week's numbers can't pass for a live one.
+
 **Capitals and stray spaces in names don't matter.** *Jacob*, *jacob* and *Jacob&nbsp;&nbsp;* are treated as one reader, on the Chromebook and on your page, and the spelling shown is whichever the child used most. What the app can't do is tell two children with the same name apart — if you have two Jacobs, put them on the class list as *Jacob M.* and *Jacob R.* and have them tap their name rather than type it.
 
 **The class view is read-only.** Word levels and removing a reader still work on the *This device* view — the Sheet is a report of what happened, not something to edit.

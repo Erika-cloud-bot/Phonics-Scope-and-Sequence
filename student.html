@@ -36,6 +36,10 @@
   .hidden { display: none !important; }
   h1 { font-size: 28px; margin: 6px 0; }
   .sub { color: var(--soft); margin: 0 0 20px; }
+  /* Whether results are reaching the teacher. Deliberately small and grey —
+     it is for the adult walking past, not for the child using the app. */
+  .syncnote { font-size: 13px; color: var(--soft); margin: 26px 0 0; text-align: center; }
+  .syncnote.stuck { color: var(--bad); }
 
   /* ---- the world itself ----
      Three layers, none of which a word ever has to be read on top of:
@@ -280,6 +284,7 @@
   </div>
   <div class="row" id="whoList" style="margin:18px 0"></div>
   <div id="whoNew"></div>
+  <p class="syncnote" id="syncNote"></p>
 </div>
 
 <!-- ===== HOME ===== -->
@@ -872,6 +877,46 @@
     try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q.slice(-200))); } catch (e) {}
   }
 
+  /* The moment the Sheet last confirmed it was holding a round from this
+     device. Everything the note below says rests on this: it is the only
+     evidence that results are genuinely arriving, rather than appearing to. */
+  var LASTOK_KEY = "phonics.sync.lastok";
+  function markDelivered() {
+    try { localStorage.setItem(LASTOK_KEY, String(Date.now())); } catch (e) {}
+  }
+
+  /* A quiet line on the sign-in screen saying whether work is getting through.
+     Without it a broken setup and a working one look exactly the same from
+     the front of the room, and a week's results can be missing before anyone
+     notices. Worded for a passing adult, and kept dull enough that a child
+     reading it learns nothing alarming. */
+  function syncNote() {
+    if (!syncUrl()) return { text:"Not sending results to your teacher.", stuck:true };
+
+    var q = readQueue();
+    var stuck = q.filter(function (r) { return (r.n || 0) >= TRIES; }).length;
+    if (stuck) return { text:"Some results can't be sent — please tell your teacher.", stuck:true };
+    if (q.length) return { text:q.length + " round" + (q.length===1?"":"s") + " waiting to send.", stuck:false };
+
+    var last = 0;
+    try { last = Number(localStorage.getItem(LASTOK_KEY)) || 0; } catch (e) {}
+    if (!last) return { text:"Ready. Nothing sent from this computer yet.", stuck:false };
+
+    var d = new Date(last), p = function (n) { return (n<10?"0":"") + n; };
+    var when = new Date().toDateString() === d.toDateString()
+      ? p(d.getHours()) + ":" + p(d.getMinutes())
+      : d.toDateString().slice(0, 10);
+    return { text:"Results sent ✓  Last at " + when + ".", stuck:false };
+  }
+
+  function showSyncNote() {
+    var el = document.getElementById("syncNote");
+    if (!el) return;
+    var n = syncNote();
+    el.textContent = n.text;
+    el.className = "syncnote" + (n.stuck ? " stuck" : "");
+  }
+
   /* Every round carries an id of its own, made here on the device. It is what
      lets the Sheet tell a round that was sent twice from a child who genuinely
      did the same activity twice and scored the same — which happens all the
@@ -949,16 +994,19 @@
       var q1 = url.indexOf("?") > -1 ? "&" : "?";
       ask(url + q1 + "have=" + encodeURIComponent(sent.join(",")), function (res) {
         flushing = false;
-        if (!res || !res.ok || !res.have) return;   // no answer: keep them queued
+        if (!res || !res.ok || !res.have) { showSyncNote(); return; }   // no answer: keep them queued
         var landed = {};
         res.have.forEach(function (id) { landed[id] = true; });
         /* Re-read rather than reusing q — a child can finish another round
            while this is in the air, and it must not be thrown out with the
            batch that has just been confirmed. */
         writeQueue(readQueue().filter(function (r) { return !landed[r.id]; }));
+        if (res.have.length) markDelivered();
+        showSyncNote();
       });
     }).catch(function () {
       flushing = false;
+      showSyncNote();
       /* leave it queued and try again after the next round */
     });
   }
@@ -1387,6 +1435,7 @@
       pickReader(n);
     });
     $("newName").addEventListener("keydown", function (e) { if (e.key === "Enter") $("addName").click(); });
+    showSyncNote();
   }
 
   function pickReader(n) {

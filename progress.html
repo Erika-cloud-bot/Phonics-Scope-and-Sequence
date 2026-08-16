@@ -367,6 +367,24 @@
   var AUTO_KEY = "phonics.sync.auto";
   var pollTimer = null, inFlight = false;
 
+  /* When the most recent round reached the Sheet. A class view that loads
+     perfectly but whose newest round is from last Tuesday is exactly what a
+     room full of Chromebooks that have stopped sending looks like — the load
+     succeeds, the numbers are simply old. */
+  function freshness(rounds) {
+    var newest = "";
+    rounds.forEach(function (r) {
+      if (r.received && r.received > newest) newest = String(r.received);
+    });
+    if (!newest) return "";
+    var day = newest.slice(0, 10), time = newest.slice(11, 16);
+    var t = new Date(), p = function (n) { return (n<10?"0":"") + n; };
+    var today = t.getFullYear() + "-" + p(t.getMonth()+1) + "-" + p(t.getDate());
+    return day === today
+      ? " Newest arrived " + time + " today."
+      : " Nothing since " + day + ".";
+  }
+
   function clockTime() {
     var d = new Date(), p = function (n) { return (n<10?"0":"") + n; };
     return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
@@ -412,7 +430,8 @@
       window.scrollTo(0, y);
 
       msg.innerHTML = (pollTimer ? "<span class='livedot'></span>Updated " + clockTime() + " · " : "Loaded ") +
-                      total + " round" + (total===1?"":"s") + " from " + n + " student" + (n===1?"":"s") + ".";
+                      total + " round" + (total===1?"":"s") + " from " + n + " student" + (n===1?"":"s") + "." +
+                      freshness(res.rounds || []);
       msg.className = "sub ok";
     });
   }
