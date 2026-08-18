@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 Erika M. Kiss — MIT License, see LICENSE. */
+
 /* Word bank, keyed by pattern. Each pattern has three tiers so the same
    weekly focus can be pitched at different readers — the differentiation
    approach from the scope and sequence: hold the pattern constant, vary

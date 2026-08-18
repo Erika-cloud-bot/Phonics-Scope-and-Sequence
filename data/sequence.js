@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 Erika M. Kiss — MIT License, see LICENSE. */
+
 /* The 36-week Grade 3 sequence, in a form the app can read.
    Mirrors Grade3_Phonics_Grammar_Scope_and_Sequence.md — if you change the
    sequence there, change it here too, or the app will drift from your plan.

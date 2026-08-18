@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 Erika M. Kiss — MIT License, see LICENSE. */
+
 /* Picture support for concrete words, as emoji — so an ESL student decoding
    "goat" also sees what a goat is. No image files, nothing downloaded, works
    offline, and renders on a Chromebook without any font installed.

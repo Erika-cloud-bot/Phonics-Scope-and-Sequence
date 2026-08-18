@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 Erika M. Kiss — MIT License, see LICENSE. */
+
 /**
  * Phonics progress collector.
  *
