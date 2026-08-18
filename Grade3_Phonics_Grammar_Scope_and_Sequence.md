@@ -66,3 +66,7 @@
 - **Differentiation:** Use the same weekly pattern/focus across ability levels, but vary word complexity (e.g., simpler vowel-team words vs. multisyllabic versions) and sentence complexity in grammar tasks.
 - **Assessment touchpoints:** Weeks 12, 14, 25–26, and 34–36 are natural points for quick checks or report card evidence.
 - **Curriculum alignment:** This sequence supports Ontario Language 2023 expectations B2 (Language Foundations for Reading and Writing) and B3 (Language Conventions for Reading and Writing).
+
+---
+
+Copyright © 2026 Erika M. Kiss. Released under the MIT Licence — see `LICENSE` in this repository.

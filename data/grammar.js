@@ -1,3 +1,5 @@
+/* Copyright (c) 2026 Erika M. Kiss — MIT License, see LICENSE. */
+
 /* Grammar bank, keyed by week. The grammar column of the scope and sequence,
    turned into questions a child can answer on their own.
 

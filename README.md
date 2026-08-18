@@ -308,3 +308,11 @@ The sequence supports Ontario Language 2023 **Strand B: Foundations of Language*
 ## A note on materials
 
 This repository contains only the sequence document and the tools built around it. Commercial and third-party resources used alongside it — Reading A-Z leveled readers, K5 Learning workbooks, Canadian Daily Phonics, the CORE Phonics Survey — are copyrighted and are **not** included here. The `.gitignore` excludes PDF, Word, and archive files so they aren't committed by accident.
+
+## Licence
+
+Copyright © 2026 Erika M. Kiss.
+
+The code and the scope and sequence document in this repository are released under the [MIT Licence](LICENSE). You're free to use, adapt, and share them — in your own classroom, school, or board — provided the copyright notice and licence text travel with the copy.
+
+This covers only what's in this repository. The commercial and third-party resources named above remain the copyright of their publishers and are **not** licensed here.
