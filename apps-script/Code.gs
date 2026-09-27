@@ -11,6 +11,7 @@
  */
 
 var SHEET_NAME = 'Rounds';
+var ROSTER_NAME = 'Class list';
 var HEADERS = ['Received', 'Student', 'Level', 'Date', 'Week',
                'Activity', 'Correct', 'Total', 'Stars', 'Tricky words', 'Device',
                'Round id'];
@@ -24,6 +25,7 @@ var HEADERS = ['Received', 'Student', 'Level', 'Date', 'Week',
  * simply have that cell empty, which is handled when they're read back.
  */
 function getSheet_() {
+  rosterTab_();   // so the class list is there to type into from the start
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
@@ -103,8 +105,10 @@ function doPost(e) {
 function doGet(e) {
   var out;
   try {
-    var have = e && e.parameter && e.parameter.have;
-    out = have ? confirmIds_(have) : allRounds_();
+    var p = (e && e.parameter) || {};
+    out = p.roster ? classList_()
+        : p.have   ? confirmIds_(p.have)
+        :            allRounds_();
   } catch (err) {
     out = { ok: false, error: String(err) };
   }
@@ -170,6 +174,52 @@ function confirmIds_(csv) {
   vals.forEach(function (row) { if (row[0]) here[String(row[0])] = true; });
 
   return { ok: true, have: asked.filter(function (id) { return here[id]; }) };
+}
+
+/**
+ * The tab holding the class list, created empty the first time anything
+ * touches this script so there is somewhere obvious to type the names.
+ */
+function rosterTab_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var tab = ss.getSheetByName(ROSTER_NAME);
+  if (!tab) {
+    tab = ss.insertSheet(ROSTER_NAME);
+    tab.getRange(1, 1).setValue("Reader's name").setFontWeight('bold');
+    tab.getRange(1, 2).setValue('One name per row below. Students tap their name instead of typing it.');
+    tab.setFrozenRows(1);
+    tab.setColumnWidth(1, 220);
+  }
+  return tab;
+}
+
+/**
+ * The class list, read by every Chromebook when a student opens the app.
+ *
+ * Typed once here rather than set up on each machine: a managed Chromebook
+ * can wipe its storage overnight, so anything stored on the device itself
+ * would have to be entered again every morning. Coming from the Sheet, the
+ * list is simply there each time the app opens.
+ *
+ * Column A, one name per row. Blanks are skipped and two spellings of the
+ * same name count once, so an accidental duplicate row is harmless.
+ */
+function classList_() {
+  var tab = rosterTab_();
+  var last = tab.getLastRow();
+  if (last < 2) return { ok: true, names: [] };
+
+  var vals = tab.getRange(2, 1, last - 1, 1).getValues();
+  var names = [], seen = {};
+  vals.forEach(function (row) {
+    var n = String(row[0] || '').trim().replace(/\s+/g, ' ').slice(0, 24);
+    if (!n) return;
+    var k = n.toLowerCase();
+    if (seen[k]) return;
+    seen[k] = true;
+    names.push(n);
+  });
+  return { ok: true, names: names.slice(0, 100) };
 }
 
 function json_(obj) {

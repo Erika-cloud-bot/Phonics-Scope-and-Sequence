@@ -848,6 +848,7 @@
   var SYNC_KEY = "phonics.sync.url";
   var QUEUE_KEY = "phonics.sync.queue";
   var DEVICE_KEY = "phonics.device.name";
+  var ROSTER_KEY = "phonics.roster";
 
   /* The address can arrive as ?sync=... on the link — which is how the
      Classroom link sets it up — and is then remembered on this device. */
@@ -857,6 +858,19 @@
       if (m) {
         var url = decodeURIComponent(m[1]);
         if (/^https:\/\/script\.google\.com\//.test(url)) localStorage.setItem(SYNC_KEY, url);
+      }
+      /* The class list can also travel on the link itself, as
+         &names=Ava,Jacob%20M.,Priya — which is the only way it reaches a
+         Chromebook that can't get to the Sheet at all. Whatever arrives on
+         the link wins, because it is the most recent thing the teacher
+         handed out. */
+      var ns = location.search.match(/[?&]names=([^&]+)/);
+      if (ns) {
+        var list = decodeURIComponent(ns[1]).split(",")
+          .map(function (s) { return s.trim().replace(/\s+/g, " ").slice(0, 24).trim(); })
+          .filter(Boolean)
+          .slice(0, 100);
+        if (list.length) localStorage.setItem(ROSTER_KEY, JSON.stringify(list));
       }
     } catch (e) {}
   })();
@@ -947,6 +961,33 @@
     script.onerror = function () { finish(null); };
     script.src = url + (url.indexOf("?") > -1 ? "&" : "?") + "callback=" + name + "&_=" + Date.now();
     document.head.appendChild(script);
+  }
+
+  /* ---------- the class list, typed once in the teacher's Sheet ----------
+
+     Setting up 25 Chromebooks by hand is not a thing anyone will do twice,
+     and a managed Chromebook can wipe its storage overnight, which would
+     undo it by morning anyway. So the list of names comes from the Sheet,
+     and is kept here only as a copy to fall back on when the Sheet can't be
+     reached — a class that has opened the app once still shows its names
+     with the wifi off. */
+  function rosterNames() {
+    try { return JSON.parse(localStorage.getItem(ROSTER_KEY)) || []; }
+    catch (e) { return []; }
+  }
+
+  function fetchRoster() {
+    var url = syncUrl();
+    if (!url) return;
+    ask(url + (url.indexOf("?") > -1 ? "&" : "?") + "roster=1", function (res) {
+      if (!res || !res.ok || !res.names) return;   // keep whatever we had
+      try { localStorage.setItem(ROSTER_KEY, JSON.stringify(res.names)); } catch (e) {}
+      /* The list usually lands a moment after the screen is already up.
+         Redraw it, but only while the child is still choosing — never
+         underneath someone who has started work. */
+      var who = document.getElementById("s-who");
+      if (who && !who.classList.contains("hidden")) buildWho();
+    });
   }
 
   /* Sending is a POST we can't read the reply to — no-cors means the browser
@@ -1406,40 +1447,74 @@
   function buildWho() {
     applyWorld();
     $("pipWho").innerHTML = pip("hi");
-    var all = loadAll(), names = Object.keys(all.students).sort();
+
+    /* Two sources, one list: the class list typed into the Sheet, and anyone
+       who has already worked on this machine. The Sheet's spelling wins, so
+       a child who typed their own name yesterday doesn't appear twice. */
+    var all = loadAll(), seen = {}, names = [];
+    rosterNames().concat(Object.keys(all.students)).forEach(function (n) {
+      var k = nameKey(n);
+      if (!k || seen[k]) return;
+      seen[k] = true;
+      names.push(n);
+    });
+    names.sort(function (a, b) { return a.localeCompare(b); });
+
     var list = $("whoList"); list.innerHTML = "";
     names.forEach(function (n) {
+      var mine = all.students[findReader(all.students, n) || n];
       var b = document.createElement("button");
-      b.className = "btn"; b.textContent = n + "  ★" + all.students[n].stars;
+      b.className = "btn";
+      b.textContent = n + (mine && mine.stars ? "  \u2605" + mine.stars : "");
       b.addEventListener("click", function () { pickReader(n); });
       list.appendChild(b);
     });
-    if (!names.length) list.innerHTML = "<p class='sub'>No readers yet — type a name below.</p>";
 
-    $("whoNew").innerHTML =
-      '<input class="name-input" id="newName" placeholder="Type your name" maxlength="24">' +
-      '<button class="btn primary block" id="addName" style="max-width:320px">Start</button>';
+    /* With a class list up, typing a name becomes the way out of a corner —
+       a child missing from the list, or a Chromebook that hasn't reached the
+       Sheet yet — rather than the way in. Tapping is what we want them
+       doing, because it is what keeps one child to one name. */
+    var haveList = names.length > 0;
+    var typing = '<input class="name-input" id="newName" placeholder="Type your name" maxlength="24">' +
+                 '<button class="btn primary block" id="addName" style="max-width:320px">Start</button>';
+
+    if (haveList) {
+      $("whoNew").innerHTML =
+        '<button class="quit" id="notListed" style="margin-top:14px">My name isn\'t here</button>' +
+        '<div id="typeBox" class="hidden" style="margin-top:12px">' + typing + '</div>';
+      $("notListed").addEventListener("click", function () {
+        $("typeBox").classList.remove("hidden");
+        this.classList.add("hidden");
+        $("newName").focus();
+      });
+    } else {
+      list.innerHTML = "<p class='sub'>No readers yet — type a name below.</p>";
+      $("whoNew").innerHTML = typing;
+    }
+
     $("addName").addEventListener("click", function () {
       var n = tidyName($("newName").value);
-      if (!n) return;
-      var d = loadAll();
-      /* An eight-year-old typing their own name each morning will not type it
-         the same way twice. "Jacob", "jacob" and "jacob  M" used to become
-         three readers with three sets of stars, and three cards on the
-         teacher's page. Anyone already here wins, whatever the capitals. */
-      var already = findReader(d.students, n);
-      if (already) { pickReader(already); return; }
-      // A reader who types their own name starts on core; the teacher can
-      // change it later on the progress page.
-      d.students[n] = { stars:0, rounds:[], level:"core" };
-      saveAll(d);
-      pickReader(n);
+      if (n) pickReader(n);
     });
-    $("newName").addEventListener("keydown", function (e) { if (e.key === "Enter") $("addName").click(); });
+    $("newName").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") $("addName").click();
+    });
     showSyncNote();
   }
 
+  /* Picking a reader is also where their record on this device is made,
+     whether they tapped a name from the class list or typed one. Anyone
+     already here wins, whatever the capitals. */
   function pickReader(n) {
+    var d = loadAll(), already = findReader(d.students, n);
+    if (already) {
+      n = already;
+    } else {
+      // A new reader starts on core; the teacher can change it later on the
+      // progress page.
+      d.students[n] = { stars:0, rounds:[], level:"core" };
+      saveAll(d);
+    }
     state.who = n;
     state.level = levelOf(n);
     state.week = null;   // a new reader starts from the week list, not the last one's week
@@ -2119,6 +2194,9 @@
   flushQueue();
 
   buildWho();
+
+  /* The class list usually arrives a moment later and redraws the names. */
+  fetchRoster();
 })();
 </script>
 </body>

@@ -254,6 +254,23 @@ Tick **Keep updating** next to that button and the page refreshes itself every 3
 - If the network drops, the numbers already on screen **stay put** — it says it's still trying rather than emptying the page
 - The setting is remembered, so the page comes back live next time you open it
 
+
+### The class list
+
+So students tap their name instead of typing it. Typed once, not set up on each Chromebook.
+
+**Either** — put it in your Sheet. A tab called **Class list** appears automatically; type one name per row in column A, under the heading. Every Chromebook picks it up when a student opens the app.
+
+**Or** — put it on the Classroom link, which works even where the Sheet can't be reached:
+
+```
+student.html?sync=YOUR_ADDRESS&names=Ava,Jacob%20M.,Priya,Noah
+```
+
+Separate names with commas, and use `%20` for a space inside a name. Whatever is on the link wins, because it's the most recent thing you handed out.
+
+Either way, tapping becomes the normal route in and typing is tucked behind *My name isn't here* — which is what keeps one child to one name. Give two children with the same first name different entries, like *Jacob M.* and *Jacob R.*
+
 ### Things worth knowing
 
 **"Who has access: Anyone" is required.** Students aren't signing in to anything, so the script has to accept unauthenticated writes. The address is long and random, so nobody finds it by guessing — but anyone who *has* it could write rows into your Sheet. That's why the address isn't in this public repository, and why it's passed on the link instead. It's a phonics sheet, so the realistic risk is low, but you should know it rather than find out.
