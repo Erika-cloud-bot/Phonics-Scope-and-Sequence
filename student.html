@@ -849,6 +849,7 @@
   var QUEUE_KEY = "phonics.sync.queue";
   var DEVICE_KEY = "phonics.device.name";
   var ROSTER_KEY = "phonics.roster";
+  var LEVEL_KEY  = "phonics.level.class";
 
   /* The address can arrive as ?sync=... on the link — which is how the
      Classroom link sets it up — and is then remembered on this device. */
@@ -871,6 +872,16 @@
           .filter(Boolean)
           .slice(0, 100);
         if (list.length) localStorage.setItem(ROSTER_KEY, JSON.stringify(list));
+      }
+
+      /* One word level for the whole class, also on the link, as &level=easy.
+         Without a Sheet there is no other way to set it from the front of the
+         room — it would mean walking to every Chromebook. A level the teacher
+         has set for one child on this machine still wins; this is the default
+         for everyone she hasn't singled out. */
+      var lv = location.search.match(/[?&]level=([a-z]+)/);
+      if (lv && /^(easy|core|challenge|mixed)$/.test(lv[1])) {
+        localStorage.setItem(LEVEL_KEY, lv[1]);
       }
     } catch (e) {}
   })();
@@ -1234,9 +1245,13 @@
     mixed:     ["easy", "core", "challenge"]
   };
 
+  /** The level set on the link for everyone, when there is one. */
+  function classLevel() {
+    try { return localStorage.getItem(LEVEL_KEY) || ""; } catch (e) { return ""; }
+  }
   function levelOf(name) {
     var s = loadAll().students[name];
-    return (s && s.level) || "mixed";
+    return (s && s.level) || classLevel() || "core";
   }
 
   /* Words for a week at the current reader's level. Returns the level's own
@@ -1512,7 +1527,9 @@
     } else {
       // A new reader starts on core; the teacher can change it later on the
       // progress page.
-      d.students[n] = { stars:0, rounds:[], level:"core" };
+      /* No level of their own: they follow the class default until the
+         teacher gives this one child a different one. */
+      d.students[n] = { stars:0, rounds:[], level:"" };
       saveAll(d);
     }
     state.who = n;
