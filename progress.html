@@ -175,7 +175,18 @@
   /* Two sources of the same shape: this device's storage, or everything
      pulled back from the Sheet. classData stays null until it's loaded. */
   var classData = null;
+
+  /* Which of the two the teacher last chose. A background refresh must never
+     change this: she clicks "This device", thirty seconds pass, the poll lands
+     and the page used to throw her back to the whole class. Remembered across
+     refreshes too, so the page opens where she left it. */
+  var VIEW_KEY = "phonics.progress.view";
   var view = "local";
+  try { view = localStorage.getItem(VIEW_KEY) || "local"; } catch (e) {}
+  function setView(v) {
+    view = v;
+    try { localStorage.setItem(VIEW_KEY, v); } catch (e) {}
+  }
 
   function render() {
     var fromClass = (view === "class" && classData);
@@ -422,7 +433,9 @@
       classData = groupRounds(res.rounds || []);
       var n = Object.keys(classData.students).length;
       var total = (res.rounds || []).length;
-      view = "class";
+      /* Only the button switches the view. A silent poll just refreshes the
+         numbers under whichever view is already on screen. */
+      if (!silent) setView("class");
 
       /* Re-rendering resets the page position, which is maddening if you're
          reading a student's list when a refresh lands. Put it back. */
@@ -467,8 +480,8 @@
     if (!document.hidden && pollTimer) fetchClass(true);
   });
 
-  $("viewLocal").addEventListener("click", function () { view = "local"; render(); });
-  $("viewClass").addEventListener("click", function () { if (classData) { view = "class"; render(); } });
+  $("viewLocal").addEventListener("click", function () { setView("local"); render(); });
+  $("viewClass").addEventListener("click", function () { if (classData) { setView("class"); render(); } });
 
   $("addStudent").addEventListener("click", function () {
     var name = tidyName($("newStudent").value), msg = $("addMsg");
