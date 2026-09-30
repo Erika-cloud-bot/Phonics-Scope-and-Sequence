@@ -174,6 +174,12 @@
 
   /* Two sources of the same shape: this device's storage, or everything
      pulled back from the Sheet. classData stays null until it's loaded. */
+  /* The whole-class word level, set on the student link as &level=easy.
+     Both pages sit on the same address, so this page can read it. */
+  function classLevel() {
+    try { return localStorage.getItem("phonics.level.class") || ""; } catch (e) { return ""; }
+  }
+
   var classData = null;
 
   /* Which of the two the teacher last chose. A background refresh must never
@@ -219,7 +225,9 @@
       var el = document.createElement("div");
       el.className = "student";
 
-      var lvl = s.level || "mixed";
+      /* Readers who haven't been singled out follow the class level set
+         on the Classroom link, so what's shown here is what they'll get. */
+      var lvl = s.level || classLevel() || "core";
       /* Level and delete only make sense against this device's own copy —
          the Sheet is a read-only report of what already happened. */
       var control = fromClass

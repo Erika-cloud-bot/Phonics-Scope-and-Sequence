@@ -269,6 +269,8 @@ student.html?sync=YOUR_ADDRESS&names=Ava,Jacob%20M.,Priya,Noah
 
 Separate names with commas, and use `%20` for a space inside a name. Whatever is on the link wins, because it's the most recent thing you handed out.
 
+**One word level for everyone** goes on the same link, as `&level=easy` (or `core`, `challenge`, `mixed`). Without it, readers start on core words. It applies to every reader on that Chromebook who you haven't set individually — a level you pick for one child on that machine's progress page still wins. This is the only way to set the level for the whole class without walking to each Chromebook.
+
 Either way, tapping becomes the normal route in and typing is tucked behind *My name isn't here* — which is what keeps one child to one name. Give two children with the same first name different entries, like *Jacob M.* and *Jacob R.*
 
 ### Things worth knowing
