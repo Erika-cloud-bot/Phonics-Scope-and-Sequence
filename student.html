@@ -1410,13 +1410,18 @@
     if (!all.length) return null;
     var en = all.filter(function (v) { return /^en(-|_|$)/i.test(v.lang); });
     if (!en.length) return null;
+    /* Accent comes first and outweighs everything else: a clear British voice
+       is still the wrong voice for an Ontario classroom. Canadian if the
+       device has one; otherwise American, which is the closest match and is
+       what Chromebooks actually ship. British, Australian and the rest are
+       only used when there is nothing else. Quality breaks ties within an
+       accent. */
     function score(v) {
       var s = 0;
+      if (/^en[-_]CA/i.test(v.lang)) s += 300;       // Canadian first
+      else if (/^en[-_]US/i.test(v.lang)) s += 200;  // then American
       if (/google/i.test(v.name)) s += 40;      // clearest in Chrome
       if (/natural|neural/i.test(v.name)) s += 30;
-      if (/^en-CA/i.test(v.lang)) s += 12;      // Canadian first
-      else if (/^en-GB/i.test(v.lang)) s += 8;
-      else if (/^en-US/i.test(v.lang)) s += 6;
       if (v.localService) s += 4;               // no network hiccup mid-word
       return s;
     }

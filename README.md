@@ -164,7 +164,7 @@ Only concrete nouns have one. Abstract words (*joy*, *remain*, *because*) are de
 
 Every word has a **Hear it** button, using the voice built into the browser. Three things make it as clear as it can be:
 
-- It picks the **best English voice installed**, rather than accepting the default — preferring Google voices (clearest on a Chromebook) and Canadian English over American.
+- It picks the **best English voice installed**, rather than accepting the default — accent first, then clarity. It uses a Canadian English voice if the device has one, otherwise an American one (the closest match, and what Chromebooks ship), and falls back to British or other accents only when nothing else is installed. Within an accent it prefers Google voices, which are the clearest on a Chromebook.
 - **Pressing again says it more slowly.** Three presses go from normal, to slow, to very slow. A child who didn't catch it just presses again — there's no extra button to find.
 - Words the voice says wrongly can be **respelled** for the voice only.
 
