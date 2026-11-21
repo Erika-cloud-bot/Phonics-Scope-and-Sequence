@@ -1301,7 +1301,7 @@
     var spel = pool.filter(function (i) { return spellable(i.word) && (canSpeak || picOf(i.word)); });
     var odd  = pool.filter(function (i) { return oddFits(i).length >= 3; });
     var real = pool.filter(function (i) { return fakeable(i.word); });
-    return { read: pool.length >= 4, sort: cols.length >= 2 && pool.length >= 6,
+    return { sort: cols.length >= 2 && pool.length >= 6,
              gap: gap.length >= 4, picture: pics.length >= 4,
              listen: canSpeak && pool.length >= 4,
              spell: spel.length >= 4, odd: odd.length >= 4, real: real.length >= 4 };
@@ -1593,8 +1593,7 @@
        words first, then the week's grammar. A strand with nothing to offer is
        hidden rather than shown full of dead buttons. */
     fillActs($("acts"),
-      [ { id:"read",    emoji:"📖", name:"Read It",        why:"Read each word out loud.",         ok:can.read },
-        { id:"listen",  emoji:"👂", name:"Hear It",        why:"Listen, then pick the word.",      ok:can.listen },
+      [ { id:"listen", emoji:"👂", name:"Hear It",        why:"Listen, then pick the word.",      ok:can.listen },
         { id:"picture", emoji:"🖼️", name:"Picture Match",  why:"Match the picture to the word.",   ok:can.picture },
         { id:"spell",   emoji:"🔤", name:"Spell It",       why:"Build the word from letters.",     ok:can.spell },
         { id:"sort",    emoji:"🗂️", name:"Sort It",        why:"Put the word in the right group.", ok:can.sort },
@@ -1613,7 +1612,7 @@
     $("gramLabel").textContent = "Grammar — " + week.grammar;
     /* A whole strand with nothing in it is hidden, heading and all. A review
        week has no words, and hiding the empty Word study grid is kinder than
-       showing eight dead buttons above the grammar the week is actually for. */
+       showing seven dead buttons above the grammar the week is actually for. */
     $("wordWrap").classList.toggle("hidden", !anyOk(can));
     $("gramWrap").classList.toggle("hidden", !anyOk(gcan));
   }
@@ -1687,7 +1686,6 @@
     if (state.at >= state.queue.length) return finish();
     var it = state.queue[state.at];
     if (GACT[state.activity])         return askGrammar(it);
-    if (state.activity === "read")    return askRead(it);
     if (state.activity === "listen")  return askListen(it);
     if (state.activity === "picture") return askPicture(it);
     if (state.activity === "spell")   return askSpell(it);
@@ -1749,25 +1747,6 @@
     document.querySelectorAll(sel).forEach(function (x) {
       x.disabled = true;
       if (!isRight && x.getAttribute(attr) === correctAttrVal) x.className = "btn choice right";
-    });
-  }
-
-  // Read It — the child reads aloud and marks themselves. The app can't hear them.
-  function askRead(it) {
-    var p = picOf(it.word);
-    $("stage").innerHTML = "<div class='stage'>" + (p ? "<div class='pic'>"+p+"</div>" : "") +
-      "<p class='the-word'>"+it.word+"</p>" + sayBtn(it.word) + "</div>" +
-      "<div class='choices'><button class='btn choice' data-read='yes'>I read it<span class='small'>easy</span></button>" +
-      "<button class='btn choice' data-read='no'>Tricky<span class='small'>come back to it</span></button></div>";
-    wire();
-    document.querySelectorAll("[data-read]").forEach(function (b) {
-      b.addEventListener("click", function () {
-        var ok = b.getAttribute("data-read") === "yes";
-        b.className = "btn choice " + (ok ? "right" : "wrong");
-        $("feedback").textContent = ok ? "Nice reading!" : "That one goes on your list.";
-        $("feedback").className = "feedback " + (ok ? "good" : "bad");
-        advance(ok, it);
-      });
     });
   }
 
@@ -1842,7 +1821,7 @@
 
   /* Hear It — the only activity that starts from sound rather than print.
      Nothing is shown until they answer, so it tests the sound-to-spelling
-     direction that Read It can't (the app can't hear the child). */
+     direction, which the app can mark (it can't hear the child read). */
   function askListen(it) {
     /* Distractors from the same pattern where possible — shirt / skirt / first
        is a listening test; shirt / painless / sleepless is a giveaway. */
@@ -1939,9 +1918,16 @@
       return x.word.toLowerCase().indexOf(g) === -1 && fits.indexOf(x.word) === -1;
     });
     var foil = candidates[Math.floor(Math.random() * candidates.length)];
-    // Should never happen given the gate, but degrade to a readable question
-    // rather than showing a broken one.
-    if (fits.length < 3 || !foil) return askRead(it);
+    // Should never happen given the gate, but degrade rather than show a broken
+    // question: ask it as Hear It if there's a voice, otherwise skip the word.
+    if (fits.length < 3 || !foil) {
+      if (canSpeak) return askListen(it);
+      state.queue.splice(state.at, 1);
+      var dots = $("dots").children;
+      if (dots[state.at]) $("dots").removeChild(dots[state.at]);
+      if (dots[state.at]) dots[state.at].className = "dot now";
+      return nextQ();
+    }
 
     var opts = shuffled(fits.concat([foil.word]));
     $("stage").innerHTML = "<div class='stage'><p class='sub'>Three of these go together.<br>" +
@@ -2171,9 +2157,10 @@
     show("s-done");
   }
 
-  /* Interleaved on purpose: reading, listening, sorting, building. Two
-     activities of the same kind shouldn't land back to back. */
-  var WORD_ROTATION = ["read","listen","sort","spell","picture","odd","gap","real"];
+  /* Interleaved on purpose: listening, sorting, building. Two activities of
+     the same kind shouldn't land back to back. (Read It was taken out in
+     November 2026 — the class didn't like it.) */
+  var WORD_ROTATION = ["listen","sort","spell","picture","odd","gap","real"];
   var GRAM_ROTATION = ["gfind","gpick","ggroup","gfix"];
 
   /* Keep going: rotate through whatever this week supports, so an open-ended

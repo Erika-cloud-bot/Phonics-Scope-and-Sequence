@@ -60,7 +60,6 @@ A child types their name, picks a world, picks a week, then chooses an activity.
 
 | Activity | What the child does | Offered when |
 |---|---|---|
-| **Read It** | Word appears large; they read it aloud and mark it *read* or *tricky* | Any week with words |
 | **Hear It** | The word is spoken but never shown; they pick it from three spellings | The browser has a voice |
 | **Picture Match** | A picture appears; they choose the word that matches | 4+ words that week have pictures |
 | **Spell It** | The word is spoken and pictured; they build it from scrambled letter tiles | A voice or a picture can tell them the word |
@@ -107,9 +106,9 @@ var READ_FREE_CHARS  = 12;    // short messages this long aren't slowed at all
 
 **One thing to watch now that grammar is in.** A grammar answer shows a verdict *and* the rule under it — usually 90 to 120 characters together, which at 200ms each runs past the 12-second ceiling in `READ_MAX`. So a missed grammar question holds the screen for the full 12 seconds unless the child presses **Next →**. That's the pace you set for Step 1 readers doing exactly what you asked of it, but the word-study feedback never reached the ceiling and grammar reaches it most times. If it feels long in the room, drop `READ_MS_PER_CHAR` to about `120` — that brings a typical grammar explanation back to six or seven seconds and leaves the word-study pauses roughly where they were.
 
-**Read It and Hear It are opposites, and both are needed.** Read It goes print → sound, but the app can't hear the child, so it's self-marked and can't be scored honestly. Hear It goes sound → print, which the app *can* mark. Between them you get both directions and one real score.
+**Read It was taken out in November 2026.** It showed a word for the child to read aloud and mark themselves *read* or *tricky*. The class didn't like it, and since the app can't hear a child read, it was never scored honestly anyway. Reading aloud is better done with you. Old Read It rounds still show by name on the progress page.
 
-Across the 28 weeks that have words, 15 offer all eight activities, and the leanest — Week 33, irregular spellings — offers four. Before these were added it offered one.
+Across the 28 weeks that have words, 12 offer all seven activities, and the leanest — Week 33, irregular spellings — offers three.
 
 ### About Real or Not
 
@@ -295,7 +294,7 @@ After several unanswered attempts a round stops being re-sent, so a persistently
 
 ### What it deliberately doesn't do
 
-- **No speech recognition.** It cannot hear a child read. Read It asks them to self-mark, which is honest rather than faked.
+- **No speech recognition.** It cannot hear a child read, so there is no read-aloud activity — that part is yours.
 - **Nothing leaves the device.** No cloud, no accounts, no analytics.
 - **Nothing borrowed.** Pip and the worlds are original. Lalilo's mascot, artwork, and themes are theirs.
 
