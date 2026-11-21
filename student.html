@@ -190,7 +190,7 @@
   .bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
   .dots { display: flex; gap: 5px; flex: 1; }
   .dot { width: 100%; height: 8px; border-radius: 4px; background: var(--line); }
-  .dot.done { background: var(--good); } .dot.miss { background: var(--bad); } .dot.now { background: var(--deep); }
+  .dot.done { background: var(--good); } .dot.miss { background: var(--bad); }
   .quit { border: none; background: none; font: inherit; font-size: 15px; color: var(--soft); cursor: pointer; text-decoration: underline; }
 
   .stage { text-align: center; padding: 18px 6px 14px; }
@@ -1672,13 +1672,14 @@
   function buildDots() {
     var d = $("dots"); d.innerHTML = "";
     state.queue.forEach(function (_, i) {
-      var e = document.createElement("div"); e.className = "dot" + (i === 0 ? " now" : ""); d.appendChild(e);
+      /* No bar is lit until a question is answered — the class read a lit
+         "you are here" bar as an answer they hadn't given yet. */
+      var e = document.createElement("div"); e.className = "dot"; d.appendChild(e);
     });
   }
   function markDot(i, ok) {
     var d = $("dots").children;
     if (d[i]) d[i].className = "dot " + (ok ? "done" : "miss");
-    if (d[i+1]) d[i+1].className = "dot now";
   }
   function nextQ() {
     $("feedback").textContent = ""; $("feedback").className = "feedback";
@@ -1925,7 +1926,6 @@
       state.queue.splice(state.at, 1);
       var dots = $("dots").children;
       if (dots[state.at]) $("dots").removeChild(dots[state.at]);
-      if (dots[state.at]) dots[state.at].className = "dot now";
       return nextQ();
     }
 
