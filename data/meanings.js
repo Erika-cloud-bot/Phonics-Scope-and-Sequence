@@ -8,6 +8,12 @@
    are deliberately absent — a wrong or vague picture is worse than none, and
    the app simply skips words with no entry when it needs a picture.
 
+   Removed November 2026 after the class spotted them in Week 2 — emoji has
+   no picture of these, and the stand-ins showed something else: desk (was a
+   chair), lamp (a lightbulb), trunk (a suitcase), mop (a broom), stamp (a
+   postbox), tablet (a phone), dentist (a tooth), picnic (the same basket as
+   "basket"). Better none than a picture of the wrong thing.
+
    To add one: "word": "emoji", on its own line. Order doesn't matter. */
 
 window.MEANINGS = {
@@ -35,7 +41,7 @@ window.MEANINGS = {
   "giraffe": "🦒", "unicorn": "🦄", "octopus": "🐙", "grasshopper": "🦗",
   "hornet": "🐝", "ladybird": "🐞", "sparrow": "🐦", "seagull": "🐦",
   "blackbird": "🐦", "woodpecker": "🐦", "trout": "🐟", "salmon": "🐟",
-  "queen": "👸", "princesses": "👸", "dentist": "🦷", "plumber": "🔧",
+  "queen": "👸", "princesses": "👸", "plumber": "🔧",
   "firefighter": "🧑‍🚒", "gardener": "🧑‍🌾", "jockey": "🏇",
 
   // body
@@ -78,7 +84,7 @@ window.MEANINGS = {
 
   // home & objects
   "house": "🏠", "bedroom": "🛏️", "bathroom": "🛁", "bathtub": "🛁",
-  "table": "🪑", "desk": "🪑", "chairs": "🪑", "sofa": "🛋️",
+  "table": "🪑", "chairs": "🪑", "sofa": "🛋️",
   "candle": "🕯️", "pillow": "🛏️", "window": "🪟", "door": "🚪",
   "doorbell": "🔔", "soap": "🧼", "broom": "🧹", "spoon": "🥄",
   "fork": "🍴", "dishes": "🍽️", "glasses": "👓", "cup": "☕",
@@ -86,7 +92,7 @@ window.MEANINGS = {
   "wool": "🧶", "thread": "🧵", "string": "🧵", "needle": "🪡",
   "comb": "💈", "knife": "🔪", "hook": "🪝", "screw": "🔩",
   "magnet": "🧲", "key": "🔑", "coin": "🪙", "money": "💰",
-  "purse": "👛", "clock": "🕐", "watches": "⌚", "lamp": "💡",
+  "purse": "👛", "clock": "🕐", "watches": "⌚",
   "light": "💡", "mitten": "🧤", "sock": "🧦", "shirt": "👕",
   "skirt": "👗", "coat": "🧥", "raincoat": "🧥", "suit": "🤵",
   "boot": "👢", "crown": "👑", "throne": "👑", "gem": "💎",
@@ -102,12 +108,12 @@ window.MEANINGS = {
   "wreath": "🎄", "sleigh": "🛷", "square": "⬜", "circle": "⭕",
   "bubble": "🫧", "puddle": "💧", "water": "💧", "splash": "💦",
   "bag": "👜", "backpack": "🎒", "knapsack": "🎒", "suitcase": "🧳",
-  "trunk": "🧳", "mop": "🧹", "pin": "📌", "stamp": "📮", "mailbox": "📫",
+  "pin": "📌", "mailbox": "📫",
   "tub": "🛁", "bottle": "🧴", "scarf": "🧣", "scarves": "🧣",
   "knives": "🔪", "wrench": "🔧", "torch": "🔦", "flashlight": "🔦",
   "curtain": "🪟", "stool": "🪑", "couch": "🛋️", "blouse": "👚",
   "hoodie": "🧥", "button": "🔘", "bookshelf": "📚", "bookcase": "📚",
-  "textbook": "📚", "newspaper": "📰", "calendar": "📅", "tablet": "📱",
+  "textbook": "📚", "newspaper": "📰", "calendar": "📅",
   "piano": "🎹", "radio": "📻", "video": "📹", "projector": "📽️",
   "thermometer": "🌡️", "protractor": "📐", "triangle": "📐",
   "package": "📦", "roof": "🏠", "tool": "🔨", "goal": "🥅",
@@ -130,7 +136,7 @@ window.MEANINGS = {
 
   // sports & play
   "football": "🏈", "hockey": "🏒", "tennis": "🎾", "sport": "⚽",
-  "swim": "🏊", "pool": "🏊", "shower": "🚿", "picnic": "🧺",
+  "swim": "🏊", "pool": "🏊", "shower": "🚿",
   "birthday": "🎂", "holiday": "🎉", "magic": "✨",
   "volleyball": "🏐", "snowball": "⛄", "daydream": "💭", "daylight": "☀️",
 
