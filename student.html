@@ -1753,7 +1753,18 @@
 
   // Picture Match — meaning, not just decoding. The point of this one for ESL.
   function askPicture(it) {
+    /* The wrong choices must have a different picture, or the question has
+       two right answers — cat and kitten are both 🐈. */
+    var pic = picOf(it.word), seen = [pic];
+    /* This round's words first; other weeks' pictured words only if the round
+       runs short of different pictures, so there are always three choices. */
     var others = shuffled(state.queue.filter(function (x) { return x.word !== it.word; }))
+                   .concat(shuffled(ALL_WORDS.filter(function (x) { return picOf(x.word); })))
+                   .filter(function (x) {
+                     var p = picOf(x.word);
+                     if (seen.indexOf(p) !== -1) return false;
+                     seen.push(p); return true;
+                   })
                    .slice(0, 2).map(function (x) { return x.word; });
     var opts = shuffled(others.concat([it.word]));
     $("stage").innerHTML = "<div class='stage'><div class='pic'>"+picOf(it.word)+"</div>" +
