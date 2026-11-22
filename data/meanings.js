@@ -14,6 +14,13 @@
    postbox), tablet (a phone), dentist (a tooth), picnic (the same basket as
    "basket"). Better none than a picture of the wrong thing.
 
+   The same check across every week took out: giant (a woolly mammoth),
+   gnome (a wizard), sailor (a sailboat), plumber (a wrench), wrist (a
+   watch), towel (a basket), comb (a barber pole), cage (a padlock), curtain
+   (a window), table and stool (a chair), marble (a crystal ball), igloo and
+   barn (a hut), roof and chimney (a house), wagon (a shopping cart), clay
+   (bricks).
+
    To add one: "word": "emoji", on its own line. Order doesn't matter. */
 
 window.MEANINGS = {
@@ -21,9 +28,9 @@ window.MEANINGS = {
   "baby": "👶", "babies": "👶", "boy": "👦", "girl": "👧", "ladies": "👩",
   "children": "🧒", "sister": "👧", "teacher": "🧑‍🏫", "farmer": "🧑‍🌾",
   "singer": "🎤", "baker": "🧑‍🍳", "painter": "🧑‍🎨", "dancer": "💃",
-  "doctor": "🧑‍⚕️", "nurse": "🧑‍⚕️", "sailor": "⛵", "knight": "🛡️",
+  "doctor": "🧑‍⚕️", "nurse": "🧑‍⚕️", "knight": "🛡️",
   "princess": "👸", "judge": "🧑‍⚖️", "clown": "🤡", "cowboy": "🤠",
-  "giant": "🦣", "gnome": "🧙", "daughter": "👧",
+  "daughter": "👧",
 
   "cat": "🐈", "cats": "🐈", "dog": "🐕", "dogs": "🐕", "pig": "🐷",
   "goat": "🐐", "bird": "🐦", "birds": "🐦", "fish": "🐟", "sheep": "🐑",
@@ -41,13 +48,13 @@ window.MEANINGS = {
   "giraffe": "🦒", "unicorn": "🦄", "octopus": "🐙", "grasshopper": "🦗",
   "hornet": "🐝", "ladybird": "🐞", "sparrow": "🐦", "seagull": "🐦",
   "blackbird": "🐦", "woodpecker": "🐦", "trout": "🐟", "salmon": "🐟",
-  "queen": "👸", "princesses": "👸", "plumber": "🔧",
+  "queen": "👸", "princesses": "👸",
   "firefighter": "🧑‍🚒", "gardener": "🧑‍🌾", "jockey": "🏇",
 
   // body
   "arm": "💪", "feet": "🦶", "foot": "🦶", "hand": "✋", "knee": "🦵",
   "teeth": "🦷", "tooth": "🦷", "thumb": "👍", "mouth": "👄", "eye": "👁️",
-  "brain": "🧠", "wrist": "⌚", "elbow": "💪", "throat": "🗣️",
+  "brain": "🧠", "elbow": "💪", "throat": "🗣️",
   "finger": "👆", "thumbprint": "👍", "eyebrow": "👁️", "haircut": "💇",
 
   // nature & weather
@@ -84,39 +91,39 @@ window.MEANINGS = {
 
   // home & objects
   "house": "🏠", "bedroom": "🛏️", "bathroom": "🛁", "bathtub": "🛁",
-  "table": "🪑", "chairs": "🪑", "sofa": "🛋️",
+  "chairs": "🪑", "sofa": "🛋️",
   "candle": "🕯️", "pillow": "🛏️", "window": "🪟", "door": "🚪",
   "doorbell": "🔔", "soap": "🧼", "broom": "🧹", "spoon": "🥄",
   "fork": "🍴", "dishes": "🍽️", "glasses": "👓", "cup": "☕",
-  "jar": "🫙", "box": "📦", "boxes": "📦", "basket": "🧺", "towel": "🧺",
+  "jar": "🫙", "box": "📦", "boxes": "📦", "basket": "🧺",
   "wool": "🧶", "thread": "🧵", "string": "🧵", "needle": "🪡",
-  "comb": "💈", "knife": "🔪", "hook": "🪝", "screw": "🔩",
+  "knife": "🔪", "hook": "🪝", "screw": "🔩",
   "magnet": "🧲", "key": "🔑", "coin": "🪙", "money": "💰",
   "purse": "👛", "clock": "🕐", "watches": "⌚",
   "light": "💡", "mitten": "🧤", "sock": "🧦", "shirt": "👕",
   "skirt": "👗", "coat": "🧥", "raincoat": "🧥", "suit": "🤵",
   "boot": "👢", "crown": "👑", "throne": "👑", "gem": "💎",
   "ribbon": "🎀", "bow": "🎀", "gift": "🎁", "balloon": "🎈",
-  "toy": "🧸", "marble": "🔮", "net": "🥅", "nest": "🪹",
+  "toy": "🧸", "net": "🥅", "nest": "🪹",
   "camera": "📷", "photo": "📷", "telephone": "☎️", "telescope": "🔭",
   "microscope": "🔬", "screen": "📺", "robot": "🤖", "guitar": "🎸",
   "music": "🎵", "paper": "📄", "page": "📄", "book": "📖",
   "books": "📚", "notebook": "📓", "pencil": "✏️", "crayon": "🖍️",
   "paint": "🎨", "mail": "📬", "letter": "✉️", "sign": "🪧",
-  "map": "🗺️", "card": "🃏", "clay": "🧱", "chain": "⛓️",
-  "oil": "🛢️", "straw": "🥤", "cage": "🔒", "backpack": "🎒",
+  "map": "🗺️", "card": "🃏", "chain": "⛓️",
+  "oil": "🛢️", "straw": "🥤", "backpack": "🎒",
   "wreath": "🎄", "sleigh": "🛷", "square": "⬜", "circle": "⭕",
   "bubble": "🫧", "puddle": "💧", "water": "💧", "splash": "💦",
   "bag": "👜", "backpack": "🎒", "knapsack": "🎒", "suitcase": "🧳",
   "pin": "📌", "mailbox": "📫",
   "tub": "🛁", "bottle": "🧴", "scarf": "🧣", "scarves": "🧣",
   "knives": "🔪", "wrench": "🔧", "torch": "🔦", "flashlight": "🔦",
-  "curtain": "🪟", "stool": "🪑", "couch": "🛋️", "blouse": "👚",
+  "couch": "🛋️", "blouse": "👚",
   "hoodie": "🧥", "button": "🔘", "bookshelf": "📚", "bookcase": "📚",
   "textbook": "📚", "newspaper": "📰", "calendar": "📅",
   "piano": "🎹", "radio": "📻", "video": "📹", "projector": "📽️",
   "thermometer": "🌡️", "protractor": "📐", "triangle": "📐",
-  "package": "📦", "roof": "🏠", "tool": "🔨", "goal": "🥅",
+  "package": "📦", "tool": "🔨", "goal": "🥅",
 
   // places & travel
   "school": "🏫", "church": "⛪", "village": "🏘️", "town": "🏘️",
@@ -125,12 +132,12 @@ window.MEANINGS = {
   "zoo": "🦁", "circus": "🎪", "bridge": "🌉", "road": "🛣️",
   "street": "🛣️", "railroad": "🛤️", "sidewalk": "🚶", "subway": "🚇",
   "car": "🚗", "cars": "🚗", "train": "🚂", "boat": "⛵", "sail": "⛵",
-  "bicycle": "🚲", "buses": "🚌", "wagon": "🛒", "pilot": "✈️",
+  "bicycle": "🚲", "buses": "🚌", "pilot": "✈️",
   "bus": "🚌", "cab": "🚕", "jet": "✈️", "cart": "🛒", "tractor": "🚜",
   "helicopter": "🚁", "motorcycle": "🏍️", "scooter": "🛴", "skateboard": "🛹",
   "trolley": "🚋", "railway": "🛤️", "highway": "🛣️", "roadside": "🛣️",
   "kayak": "🛶", "canoe": "🛶", "toboggan": "🛷", "sailboat": "⛵",
-  "rowboat": "🚣", "lifeboat": "🛟", "igloo": "🛖", "barn": "🛖",
+  "rowboat": "🚣", "lifeboat": "🛟",
   "museum": "🏛️", "hospital": "🏥", "apartment": "🏢", "tower": "🗼",
   "aquarium": "🐠", "orbit": "🪐", "campfire": "🔥", "airport": "🛫",
 
@@ -151,6 +158,6 @@ window.MEANINGS = {
   "voice": "🗣️", "noise": "🔊", "sound": "🔊", "burn": "🔥",
   "write": "✍️", "teach": "🧑‍🏫", "point": "👉", "strong": "💪",
   "ice": "🧊", "wheel": "☸️", "arrow": "🏹", "horn": "📯",
-  "north": "🧭", "chimney": "🏠", "snowman": "⛄", "sunset": "🌅",
+  "north": "🧭", "snowman": "⛄", "sunset": "🌅",
   "moonlight": "🌙", "dance": "💃", "face": "😀"
 };
